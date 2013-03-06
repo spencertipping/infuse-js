@@ -18,23 +18,80 @@ wrapper for a value (this is always O(1) in space and time). For example:
 var xs  = [1, 2, 3, 4, 5];
 var ixs = infuse(xs);
 
+ixs.version()                   // -> 1
+
 var mapped = ixs.map(function (x) {return x + 1});
 mapped.get()                    // -> [2, 3, 4, 5, 6]
 mapped.each(function (x) {
   console.log(x);
 });                             // logs 2, 3, 4, 5, 6 (on separate lines)
 
-var grouped = ixs.groupby(function (x) {return x % 1});
+mapped.each(function (x, i) {   // each value and its index
+  console.log(i + ' -> ' + x);
+});
+
+var indexed = ixs.index(function (x) {return x % 1});
+indexed.get()                   // -> {'0': 4, '1': 5}
+
+var grouped = ixs.group(function (x) {return x % 1});
 grouped.get()                   // -> {'0': [2, 4], '1': [1, 3, 5]}
 
 ixs.get(0)                      // -> 1
 ixs.get(-1)                     // -> 5
 ixs.size()                      // -> 5
 
+// linear interpolation FTW
+ixs.get(1.3)                    // -> 1.3
+
+// custom interpolation
+ixs.get(1.3, function (x1, x2, f) {
+  return x1 + (x2 - x1) * f*f;
+});                             // -> 1.09 (= 1 + (2 - 1) * 0.09)
+
+// multi-get
+ixs.get([1, -1.2, -1])          // -> [1, 4.8, 5]
+
 ixs.first()                     // -> 1
 var even = function (x) {return x % 2 === 0};
 ixs.first(even)                 // -> 2
+
+xs.push(2);
+ixs.touch().size()              // -> 6
+ixs.sort().uniq().size()        // -> 5 (total complexity is O(n log n))
+ixs.indexes().get()             // -> [0, 1, 2, 3, 4]
+ixs.values()                    // -> ixs
+ixs.version()                   // -> 2 (because we called touch())
 ```
+
+You can also wrap objects:
+
+```js
+var iobj = infuse({foo: 1, bar: 2, bif: 3});
+var mapped = iobj.map(function (x) {return x + 1});
+mapped.get()                    // -> {foo: 2, bar: 3, bif: 4}
+
+// function shorthands (described in detail some distance below)
+iobj.index('_ % 1').get()       // -> {'0': 'bar', '1': 'bif'}
+iobj.group('_ % 1').get()       // -> {'0': ['bar'], '1': ['foo', 'bif']}
+
+iobj.get('foo')                 // -> 1
+iobj.get('.foo')                // -> 1 (see "inversions" below)
+iobj.get('_.foo')               // -> 1 (function shorthand)
+
+iobj.indexes().get()            // -> ['bar', 'bif', 'foo'] (sorted)
+iobj.indices().get()            // -> ditto
+iobj.values()                   // -> [[3, 4], [5], [1, 2]] (sorted)
+iobj.each(function (v) {
+  console.log(v);
+});
+
+iobj.each(function (v, k) ...); // note! value always comes first
+```
+
+**NOTE**: If you destructively update an object that you've already passed into
+Infuse, you need to `touch` the infuse instance that you gave it to in order
+for it to observe the change. Otherwise, `get`, `size`, and all other method
+calls may continue to operate on the original object.
 
 ### Inversions
 
@@ -42,19 +99,38 @@ An inversion is a way to flip an object inside-out. It's a lot like a zipper
 for objects and arrays. For example:
 
 ```js
-iobj.get()                      // -> {foo: 1, bar: [1, 2, 3]}
-var inv = iobj.at('.bar[2]');
+var iobj = infuse({foo: 1, bar: [1, 2, 3]});
+var inv  = iobj.at('.bar[2]');
 inv.get()                       // -> 3
-inv.up().get()                  // -> [1, 2, 3]
-inv.up(2).get()                 // -> {foo: 1, bar: [1, 2, 3]}
-inv.set(5).up(2).get()          // -> {foo: 1, bar: [1, 2, 5]}
-inv.up(2).get()                 // -> {foo: 1, bar: [1, 2, 3]}
+var edited = inv.map(function (x) {return 5});
+edited.get()                    // -> 5
+edited.at(-2).get()             // -> {foo: 1, bar: [1, 2, 5]}
+inv.get()                       // -> {foo: 1, bar: [1, 2, 3]}
 ```
 
-Notice that no value is actually edited; inversions copy the values they are
-traversing before committing the change. Inversions themselves don't change
-either; instead, each one points to the one before to form a linked list of
-changes.
+Notice that no value is actually edited; inversions always return new objects
+without modifying the originals. This means that you can edit the original and
+replay the inversion's changes:
+
+```js
+iobj.get().bar[0] = 'hi';
+edited.get()                    // -> {foo: 1, bar: ['hi', 2, 5]}
+```
+
+If your inversion path contains wildcards, you'll get an array of inversions
+back:
+
+```js
+var iobj = infuse({foo: [1, 2], bar: [3, 4], bif: [5]});
+var results = iobj.at('.*[0]').map(function (inv) {return inv.get()});
+results.get()                   // -> [1, 3, 5]
+
+// perhaps more conveniently:
+iobj.get('.*[0]')               // -> [1, 3, 5]
+iobj.get('.*[1]')               // -> [1, 3]
+iobj.first('.*[0]')             // -> 3 (keys are sorted)
+iobj.last('.*[0]')              // -> 1
+```
 
 ### Futures
 
@@ -63,9 +139,11 @@ flexible than a callback in a number of ways; for example:
 
 ```js
 var future = infuse.future();
+future.size()                   // -> 0
 $.getJSON('/foo', future);
 
 var somefield = future.map(function (result) {
+  future.size()                 // -> 1
   return infuse(result).at('.foo.bar[0].bif').get();
 });
 
@@ -117,13 +195,14 @@ example:
 
 ```js
 var sig = infuse.signal();
+sig.size()                      // -> 0
 sig.each(function (result) {
   console.log(result);
 });
 
 sig(1);                         // -> null, logs '1'
 sig(2);                         // -> null, logs '2'
-
+sig.size()                      // -> 2
 sig.get()                       // -> 2
 ```
 
@@ -212,8 +291,9 @@ everything connected to that value will automatically be updated.
 
 You've probably noticed that regardless of what kind of object we're dealing
 with, most of the same methods (`each`, `map`, etc) are available. This isn't
-an accident: *every* `infuse` object has the same set of methods. The methods
-are adapted to whatever kind of thing you're doing. For example:
+an accident: *every* `infuse` object has the same set of methods (and most of
+them work on every kind of object). The methods are adapted to whatever kind of
+thing you're doing. For example:
 
 ```js
 var future = infuse.future();
@@ -240,6 +320,13 @@ semantically equivalent to *y*":
 - `i.map(f).flatmap(g) ~= i.flatmap(compose(g, f))`
 - `i.map(identity).each(f) ~= i.each(f)`
 
+### Methods that don't work everywhere
+
+The following method calls will fail with a runtime error:
+
+- `future.force()`: this isn't possible in Javascript.
+- `signal.force()`: this also isn't possible and its meaning is unclear.
+
 ### Function shorthands
 
 For all its virtues, Javascript has awful function syntax. Infuse helps out a
@@ -251,12 +338,13 @@ words.filter('_.charAt(0) === "b"').size()      // -> 4
 words.filter(/^b/).size()                       // -> 4
 words.map('.length').last()                     // -> 3
 words.map(/.(.)./).join('')                     // -> 'oaiao'
+words.map({foo: 'FOO'}).join(' ')               // -> 'FOO bar bif baz bok'
 ```
 
-Note that `'.foo[0]'` and `'_.foo[0]'` aren't the same thing! `'.foo[0]'` is an
-Infuse path (since it begins with `.` or `[`) and `'_.foo[0]'` is an anonymous
-function. The difference is that Infuse paths won't fail for null intermediate
-objects:
+**WARNING**: `'.foo[0]'` and `'_.foo[0]'` aren't the same thing! `'.foo[0]'` is
+an Infuse path (since it begins with `.` or `[`) and `'_.foo[0]'` is an
+anonymous function. The difference is that Infuse paths won't fail for null
+intermediate objects:
 
 ```js
 var objects = infuse([null, {foo: null}, {foo: [10]}]);
@@ -270,4 +358,62 @@ can't modify their values):
 ```js
 var log = function (x) {console.log(x)};
 objects.each('log(_)', {log: log});
+```
+
+### Lazy sequences
+
+A signal is a sort of push-sequence: `map` and `each` evaluation happens when
+stuff is pushed onto the end. Lazy sequences are pull-sequences: `map` and
+`each` happen in response to the user pulling values from them.
+
+Unlike implementations in a lot of languages, Infuse will rarely force
+something that's lazy. Instead, you tell it to force a sequence until some
+condition is reached. For example:
+
+```js
+var lazy = infuse.iterate(0, '_ + 1');
+lazy.size()                     // -> 0 (no elements forced yet)
+lazy.get()                      // -> [] (all forced elements)
+
+// this is boring; let's get some elements
+lazy.force(10)                  // -> lazy
+lazy.size()                     // -> 10
+lazy.get(-1)                    // -> 9
+```
+
+Note that calling `force()` automatically `touch`es the sequence object if any
+new elements are added. Each `force` operation increments the version by at
+most 1.
+
+Here's where things get interesting. Laziness is contagious: if you index a
+lazy sequence, you'll get an object whose values change as more things are
+forced. The same goes for mapped sequences, etc. For example:
+
+```js
+var idx = lazy.index('_ % 3')
+idx.get()                       // -> {'0': 9, '1': 7, '2': 8}
+idx.force(11)                   // -> idx
+lazy.size()                     // -> 11
+idx.get()                       // -> {'0': 9, '1': 10, '2': 8}
+lazy.force(12)                  // -> lazy
+idx.get()                       // -> {'0': 9, '1': 10, '2': 11}
+idx.get(0)                      // -> 9
+idx.size()                      // -> 3
+```
+
+**BIG HUGE WARNING**: Infuse is allowed to destructively change the objects it
+gives you as `get` results! Anything it generates is as mutable as the object
+that generated it. Behavior is undefined if you destructively change an object
+created by an Infuse wrapper.
+
+If you request an index that isn't in range and the sequence has a lazy
+generator, then you'll get a future that is resolved once the sequence is
+forced:
+
+```js
+var future = lazy.get(20);
+future.each('console.log(_)');
+future.get()                    // -> null
+lazy.force(20);                 // logs 19
+future.get()                    // -> 19
 ```
