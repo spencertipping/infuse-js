@@ -1,0 +1,38 @@
+Infuse minheap | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+A fairly trivial minheap-map implementation used by the cache as a priority
+queue. This heap stores objects independently from their priorities, so you can
+update an object's priority dynamically and it will heapify up or down
+accordingly.
+
+infuse.type('heap', function (proto) {
+  proto.initialize = function (ordering) {
+    this.ordering_  = ordering;
+    this.elements_  = [];
+    this.positions_ = {};
+  };
+
+  proto.size = function () {return this.elements_.length};
+  proto.each = function () {
+    var f = infuse.fn.apply(this, arguments);
+    for (var xs = this.elements_, i = 0, l = xs.length; i < l; ++i)
+      if (f(xs[i]) === false) break;
+    return this;
+  };
+
+  proto.pop = function () {
+    
+  };
+});
+
+infuse.heap = function (ordering) {
+  if (!(this instanceof infuse.heap))
+    return new infuse.heap(ordering);
+  this.ordering   = ordering;
+  this.elements_  = [];         // heap elements: {v: x, index: n}
+  this.positions_ = {};         // value positions: {x1: i1, x2: i2, ...}
+};
+
+});

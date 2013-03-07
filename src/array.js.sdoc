@@ -1,0 +1,19 @@
+Infuse array module | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Infuse arrays.
+Arrays are treated as strict finite sequences. Supported methods include:
+
+| all(fn)       -> true if ∀ x : f(x), false otherwise
+  any(fn)       -> true if ∃ x : f(x), false otherwise
+  at('[i]...')  -> xs[i].at('...')
+  each(f)       -> f(x1, i1), f(x2, i2), ..., this
+  first()       -> xs[0]
+  first(n)      -> infuse([xs[0], xs[1], ..., xs[n-1]])
+  first(f)      -> select(f).first()
+  flatmap(f)    -> infuse(f(x1, i1).concat(f(x2, i2)).concat(...))
+  map(f)        -> infuse([f(x1, i1), f(x2, i2), ...])
+  select(f)     -> infuse([x : f(x)])
+  reject(f)     -> infuse([x : !f(x)])
+
+

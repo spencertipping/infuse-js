@@ -1,0 +1,69 @@
+Infuse function promotion | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Javascript's function syntax is verbose, so Infuse supports implicit function
+promotion. This means that any method expecting a function can also accept
+other values like regular expressions or strings, and Infuse will produce a
+function from these other values.
+
+All Infuse extensions are written using `infuse.extend`. This binds a local
+variable `infuse` that won't change even if the user calls `infuse.hide()`
+(which removes the global reference).
+
+infuse.extend(function (infuse) {
+
+infuse.fn = infuse.dispatcher('infuse.fn');
+
+Regular expressions.
+Regular expression functions return either a match object (for regexps with
+no capturing groups), or strings (for regexps with one or more capturing
+groups).
+
+| infuse.fn(/foo/)      -> function (x) {return /foo/.exec(x)}
+  infuse.fn(/f(o)o/)    -> function (x) {
+                             var result = /f(o)o/.exec(x);
+                             return result && result[1];
+                           }
+
+Regexps are most useful when used on sequences of strings:
+`infuse(...).map(/f(.)o/)`.
+
+infuse.regexp_group_count = function (regexp) {
+  // Simple regexp parse: look for unescaped open-parens that aren't followed
+  // by ?.
+  for (var s = regexp.toString(),  groups     = 0,     group_check = -1,
+           l = s.lastIndexOf('/'), escape     = false,
+           i = 1,                  char_class = false, c;
+       i < l, ++i) {
+    c = s.charCodeAt(i);
+    if      (escape)   escape = false;
+    else if (c === 92) escape = true;                         // 92 = \
+    else if (c === 93) char_class = false;                    // 93 = ]
+    else if (char_class);
+    else if (c === 91) char_class = true;                     // 91 = [
+    else if (c === 40) group_check = i + 1, ++groups;         // 40 = (
+    else if (i === group_check && c === 63) --groups;         // 63 = ?
+  }
+  return groups;
+};
+
+infuse.fn.alternatives.push(
+  {accepts:   function (x) {return x.constructor === RegExp},
+   construct: function (regexp) {
+     return infuse.regexp_group_count(regexp)
+       // We have match groups; concatenate and return them as a single
+       // string.
+       ? function (x) {
+           var result = regexp.exec(x);
+           return result && Array.prototype.slice.call(result, 1).join("");
+         }
+
+       // No match groups; just return the matchdata object.
+       : function (x) {return regexp.exec(x)}}});
+
+Strings.
+There are two possibilities for strings. If the string begins with `[` or
+`.`, then it's assumed to be an object traversal path; otherwise it's
+compiled into a function. In the latter case, a second argument can be
+specified to bind closure variables.

@@ -1,0 +1,59 @@
+Infuse core | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+All Infuse objects support a large set of core methods. Many of these methods
+are implemented in terms of other, type-specific methods; for example, `each`
+is a type-specific method that is used for `all` and `any`. This file defines
+the global `infuse` function and the mechanism used to define type-specific
+infuse implementations.
+
+(function () {
+  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined;
+
+  var dispatcher = function (name) {
+    var result = function (x) {
+      for (var xs = result.alternatives, i = xs.length - 1, t; i >= 0; --i)
+        if ((t = xs[i]).accepts.apply(t, arguments))
+          return t.construct.apply(t, arguments);
+      throw new Error(
+        name + '(' + Array.prototype.slice.call(arguments).join(', ')
+             + ') is not supported');
+    };
+
+    result.alternatives = [];
+    return result;
+  };
+
+  var infuse_global = dispatcher('infuse');
+  infuse_global.dispatcher = dispatcher;
+
+  infuse_global.hide = function () {
+    infuse = original_infuse;
+    original_infuse = null;
+    delete infuse_global.hide;
+    return infuse_global;
+  };
+
+  infuse = infuse_global;
+})();
+
+Methods and type definition.
+All global methods are installed on `infuse.prototype`. Subclasses then inherit
+from `infuse` using the usual Javascript inheritance pattern.
+
+infuse.type = function (name, body) {
+  var ctor = infuse[name] = function () {
+    if (this.constructor !== ctor) {
+      var result = new ctor();
+      result.initialize.apply(result, arguments);
+      return result;
+    }
+  };
+  (ctor.prototype = new infuse()).constructor = ctor;
+  return body.call(ctor.prototype, ctor.prototype) || ctor;
+};
+
+infuse.extend = function (body) {
+  return body.call(infuse, infuse) || infuse;
+};

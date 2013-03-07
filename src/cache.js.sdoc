@@ -1,0 +1,71 @@
+Infuse caches | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This module defines various kinds of caches for Infuse. These are used
+internally in cases where a weak reference map would ordinarily be used; for
+instance, caching compiled functions.
+
+infuse.extend(function (infuse) {
+
+infuse.cache = function (eviction_strategy) {
+  var cache = {},       // cache data
+      state = {};       // eviction strategy state
+  eviction_strategy = eviction_strategy || infuse.cache.lru();
+  var result = function (obj, generate) {
+    return eviction_strategy(result, cache, state, obj, generate);
+  };
+  return result;
+};
+
+Eviction strategies.
+An eviction strategy is notified whenever an entry is created, accessed, added,
+or removed from the cache. It then, potentially asynchronously, acts on the
+cache object to evict something if necessary. The eviction strategy owns the
+cache object exclusively; no user of the cache has access to it.
+
+infuse.cache.lru = function (options) {
+  options = options || {};
+  var capacity = options.capacity || 1000,
+
+  return function (f, cache, state, key, generate) {
+    // Initialize the state if necessary. This happens before any objects are
+    // inserted into the cache.
+    if (!state.initialized)
+      state.initialized    = true,
+      state.size           = 0,
+      state.access_counter = 0,
+      state.priority_queue = infuse.heap(),
+      f.hit                = 0,
+      f.evict              = 0,
+      f.miss               = 0;
+
+    // Prefix the key with something not used by Javascript. Otherwise we risk
+    // colliding with native methods like Object.prototype.toString.
+    key = '@' + key;
+
+    // First, determine whether we have the item. If we do, just update the
+    // access time and take no further action.
+    var hit = cache[key];
+    if (hit) {
+      ++f.hit;
+      state.priority_queue.update(key, ++state.access_counter);
+      return hit;
+    }
+
+    // Cache miss, so go ahead and generate a value and insert the result.
+    // If we're over capacity, evict the least-recent access, which will be the
+    // top element in the priority queue.
+    var value = generate(key);
+
+    if (++state.size > capacity) {
+      ++f.evict;
+      delete cache[state.priority_queue.pop()];
+    }
+
+    ++f.miss;
+    return cache[key] = value;
+  };
+};
+
+});
