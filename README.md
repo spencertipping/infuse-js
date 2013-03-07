@@ -108,12 +108,13 @@ edited.at(-2).get()             // -> {foo: 1, bar: [1, 2, 5]}
 inv.get()                       // -> {foo: 1, bar: [1, 2, 3]}
 ```
 
-Notice that no value is actually edited; inversions always return new objects
-without modifying the originals. This means that you can edit the original and
-replay the inversion's changes:
+Notice that no value is changed destructively; inversions always return new
+objects without modifying the originals. This means that you can edit the
+original and replay the inversion's changes:
 
 ```js
 iobj.get().bar[0] = 'hi';
+iobj.touch();                   // inform iobj that its object has changed
 edited.get()                    // -> {foo: 1, bar: ['hi', 2, 5]}
 ```
 
@@ -313,8 +314,8 @@ then it's a bug).
 
 ### Equivalences
 
-For all infuse objects `i`, the following hold, where `x ~= y` means "*x* is
-semantically equivalent to *y*":
+For all infuse objects `i`, the following hold, where `x ~= y` means "x is
+semantically equivalent to y":
 
 - `i.map(f).map(g) ~= i.map(compose(g, f))`
 - `i.map(f).flatmap(g) ~= i.flatmap(compose(g, f))`
@@ -366,11 +367,12 @@ A signal is a sort of push-sequence: `map` and `each` evaluation happens when
 stuff is pushed onto the end. Lazy sequences are pull-sequences: `map` and
 `each` happen in response to the user pulling values from them.
 
-Unlike implementations in a lot of languages, Infuse will rarely force
-something that's lazy. Instead, you tell it to force a sequence until some
-condition is reached. For example:
+Unlike implementations in a lot of languages, Infuse will never implicitly
+force a sequence. Instead, you explicitly tell it to force until some condition
+is reached. For example:
 
 ```js
+// lazy sequence of nonnegative integers:
 var lazy = infuse.iterate(0, '_ + 1');
 lazy.size()                     // -> 0 (no elements forced yet)
 lazy.get()                      // -> [] (all forced elements)
@@ -381,16 +383,16 @@ lazy.size()                     // -> 10
 lazy.get(-1)                    // -> 9
 ```
 
-Note that calling `force()` automatically `touch`es the sequence object if any
-new elements are added. Each `force` operation increments the version by at
-most 1.
+Note that `force` touches the sequence object if any new elements are added.
+Each `force` operation increments the version by at most 1, and elements added
+to the sequence with `force` are added atomically.
 
 Here's where things get interesting. Laziness is contagious: if you index a
 lazy sequence, you'll get an object whose values change as more things are
 forced. The same goes for mapped sequences, etc. For example:
 
 ```js
-var idx = lazy.index('_ % 3')
+var idx = lazy.index('_ % 3');
 idx.get()                       // -> {'0': 9, '1': 7, '2': 8}
 idx.force(11)                   // -> idx
 lazy.size()                     // -> 11
