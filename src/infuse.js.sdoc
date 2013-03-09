@@ -18,7 +18,8 @@ infuse implementations.
           return t.construct.apply(t, arguments);
       throw new Error(
         name + '(' + Array.prototype.slice.call(arguments).join(', ')
-             + ') is not supported');
+             + ') is not supported (no alternative accepted the supplied '
+             + 'arguments)');
     };
 
     result.alternatives = [];
@@ -33,6 +34,12 @@ infuse implementations.
     original_infuse = null;
     delete infuse_global.hide;
     return infuse_global;
+  };
+
+  infuse_global.unloaders = [];
+  infuse_global.unload = function () {
+    for (var xs = infuse_global.unloaders, i = 0, l = xs.length; i < l; ++i)
+      xs[i]();
   };
 
   infuse = infuse_global;
@@ -51,9 +58,9 @@ infuse.type = function (name, body) {
     }
   };
   (ctor.prototype = new infuse()).constructor = ctor;
-  return body.call(ctor.prototype, ctor.prototype) || ctor;
+  return body.call(ctor, ctor, ctor.prototype) || ctor;
 };
 
 infuse.extend = function (body) {
-  return body.call(infuse, infuse) || infuse;
+  return body.call(infuse, infuse, infuse.prototype) || infuse;
 };

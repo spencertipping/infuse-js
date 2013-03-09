@@ -24,48 +24,70 @@ or removed from the cache. It then, potentially asynchronously, acts on the
 cache object to evict something if necessary. The eviction strategy owns the
 cache object exclusively; no user of the cache has access to it.
 
-infuse.cache.lru = function (options) {
-  options = options || {};
-  var capacity = options.capacity || 1000,
+  LRU eviction.
+  This is the most straightforward. We just keep a simple mapping from key to
+  access-time, and maintain a priority queue of evictable elements. This makes
+  cache access O(log n) in the number of elements, which is bounded above by
+  the cache capacity.
 
-  return function (f, cache, state, key, generate) {
-    // Initialize the state if necessary. This happens before any objects are
-    // inserted into the cache.
-    if (!state.initialized)
-      state.initialized    = true,
-      state.size           = 0,
-      state.access_counter = 0,
-      state.priority_queue = infuse.heap(),
-      f.hit                = 0,
-      f.evict              = 0,
-      f.miss               = 0;
+  LRU eviction allows the user to evict an element at any point by calling the
+  `evict_one` method on the cache object. This can be useful if you want to
+  simulate weak references by slowly freeing memory over time, for instance.
 
-    // Prefix the key with something not used by Javascript. Otherwise we risk
-    // colliding with native methods like Object.prototype.toString.
-    key = '@' + key;
+  infuse.cache.lru = function (options) {
+    options = options || {};
+    var capacity = options.capacity || 1000,
+        evict    = function (cache, state) {
+          // Do nothing if there are no elements.
+          if (!state.size) return false;
+          --state.size;
+          return delete cache[state.priority_queue.pop()];
+        },
+        clear    = function (cache, state) {
+          for (var k in cache) delete cache[k];
+          while (state.priority_queue.size()) state.priority_queue.pop();
+          state.size = 0;
+        };
 
-    // First, determine whether we have the item. If we do, just update the
-    // access time and take no further action.
-    var hit = cache[key];
-    if (hit) {
-      ++f.hit;
-      state.priority_queue.update(key, ++state.access_counter);
-      return hit;
-    }
+    return function (f, cache, state, key, generate) {
+      // Initialize the state if necessary. This happens before any objects are
+      // inserted into the cache.
+      if (!state.initialized)
+        state.initialized    = true,
+        state.size           = 0,
+        state.access_counter = 0,
+        state.priority_queue = infuse.heap(),
+        f.hits               = 0,
+        f.evictions          = 0,
+        f.misses             = 0,
+        f.evict_one          = function () {return evict(cache, state)},
+        f.clear              = function () {return clear(cache, state)};
 
-    // Cache miss, so go ahead and generate a value and insert the result.
-    // If we're over capacity, evict the least-recent access, which will be the
-    // top element in the priority queue.
-    var value = generate(key);
+      // Prefix the key with something not used by Javascript. Otherwise we
+      // risk colliding with native methods like Object.prototype.toString.
+      key = '@' + key;
 
-    if (++state.size > capacity) {
-      ++f.evict;
-      delete cache[state.priority_queue.pop()];
-    }
+      // First, determine whether we have the item. If we do, just update the
+      // access time and take no further action.
+      var hit = cache[key];
+      if (hit) {
+        ++f.hits;
+        state.priority_queue.update(key, ++state.access_counter);
+        return hit;
+      }
 
-    ++f.miss;
-    return cache[key] = value;
+      // Cache miss, so go ahead and generate a value and insert the result.
+      // If we're over capacity, evict the least-recent access, which will be
+      // the top element in the priority queue.
+      var value = generate(key);
+      ++f.misses;
+      if (++state.size > capacity) {
+        ++f.evictions;
+        evict(cache, state);
+      }
+      state.priority_queue.push(key, ++state.access_counter);
+      return cache[key] = value;
+    };
   };
-};
 
 });
