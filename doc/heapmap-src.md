@@ -8,14 +8,9 @@ queue. This heap stores objects independently from their priorities, so you can
 update an object's priority dynamically and it will heapify up or down
 accordingly.
 
-A heap is an Infuse object, so it supports the usual set of methods. It also
-supports the following heap-specific methods:
-
-    push(k, index) -> this        // insert, or update if already there
-    pop()          -> k           // remove item with minimum index
-    first(index)   -> [k1, ...]   // get all keys whose values are <= index
-
-In every other way it behaves like an object that maps keys to heap indexes.
+Note that **heaps are not real Infuse objects** in that they are inherently
+mutable. This means that you can't make derivatives of them, so all of the
+usual transformation methods will fail if you use them with heaps.
 
 # Performance
 
@@ -54,46 +49,37 @@ but then the map will break). If you want the map functionality, then the data
 you're storing must be a string.
 
 ```js
-methods.initialize = function (above, generator, base) {
+methods.initialize = function (above) {
   // Default to a minheap of numeric/comparable things.
   this.above_     = above ? infuse.fn(above) : function (a, b) {return a < b};
   this.elements_  = [];
   this.positions_ = {};
-  this.base_      = base || null;
-  this.generator_ = generator || null;
-  this.versions_  = {};
-  this.version_   = 0;
 };
 ```
 
 ```js
-methods.size = function () {return this.pull().elements_.length};
+methods.size = function () {return this.elements_.length};
 ```
 
 # Derivatives
 
-You can construct a derivative for any heapmap.
+All derivative methods are disabled because heapmaps are too mutable to
+sensibly transform them.
 
 ```js
 methods.derivative = function (generator) {
-  return infuse.heapmap(this.above_, generator, this);
+  throw new Error('infuse: cannot create derivative of a heap');
 };
 ```
 
 ```js
 methods.force = function (n) {
-```
-
-```js
+  throw new Error('infuse: cannot force a heap');
 };
 ```
 
 ```js
-methods.touch = function (touched_keys) {
-```
-
-```js
-};
+methods.touch = function () {return this};
 ```
 
 # Traversal
@@ -120,16 +106,20 @@ methods.get = function (k) {
 ```
 
 ```js
+methods.peek = function () {
+  var xs = this.elements_;
+  if (!xs.length) return void 0;
+  return xs[0].k;
+};
+```
+
+```js
 methods.pop = function () {
   var xs  = this.elements_,
       map = this.positions_;
   if (!xs.length) return void 0;      // can't pop an empty heap
-```
-
-```js
-  this.touch();                       // update version
   var first = xs[0];
-  xs[0] = xs_.pop();                  // standard last->first...
+  xs[0] = xs.pop();                   // standard last->first...
   this.heapify_down_(0);              // then heapify down
   map[xs[0].k] = 0;                   // update position map
   delete map[first.k];
@@ -141,10 +131,6 @@ methods.pop = function () {
 methods.push = function (k, v) {
   var xs  = this.elements_,
       map = this.positions_;
-```
-
-```js
-  this.touch();
   if (Object.prototype.hasOwnProperty.call(map, k)) {
     // Update, not insert. Change the value, then heapify up or down
     // depending on the value ordering.
@@ -152,9 +138,6 @@ methods.push = function (k, v) {
         x          = xs[i],
         original_v = x.v;
     x.v = v;
-```
-
-```js
     return this.above_(v, original_v)
       ? this.heapify_up_(i)
       : this.heapify_down_(i);
@@ -194,14 +177,14 @@ methods.heapify_down_ = function (i) {
   // Swap with the greater of the two children unless the current element is
   // greater than both.
   var left  = i << 1,
-      right = i << 1 | 1,
+      right = left | 1,
       xi    = xs[i].v,
       xl    = xs[left].v,
       xr    = xs[right];      // this might not exist
 ```
 
 ```js
-  if (this.above_(xi, xl) && !xr || this.above_(xi, xr.v))
+  if (this.above_(xi, xl) && (!xr || this.above_(xi, xr.v)))
     // We're done; neither child is greater.
     return this;
 ```
@@ -220,7 +203,7 @@ methods.heapify_up_ = function (i) {
 ```
 
 ```js
-  return i && this.above_(xs[i], xs[up])
+  return i && this.above_(xs[i].v, xs[up].v)
     ? this.swap_(i, up).heapify_up_(up)
     : this;
 };
