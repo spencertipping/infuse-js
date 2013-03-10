@@ -70,9 +70,18 @@ represent, but with a few major exceptions:
 2. There is no API to modify existing elements in an Infuse collection (that
    is, collections are append-only).
 3. Derivative collections (e.g. `map` results) inherit changes from their
-   source. This also works for multi-level collections.
+   source. Multilevel inheritance is fully supported, and all synchronous
+   collections (i.e. not futures or signals) are only singly-linked from child
+   to parent.
 
-For more details, check out the narrative tests for each data type:
+For more details, check out the narrative tests for each data type and utility
+function:
 
 - [arrays](doc/array.md)
 - [objects](doc/object.md)
+- [fn](doc/fn.md)
+
+You can also see the low-level stuff:
+
+- [cursors](doc/cursors.md)
+- [versions](doc/versions.md)

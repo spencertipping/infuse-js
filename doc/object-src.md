@@ -28,7 +28,7 @@ base.
 methods.initialize = function (o_or_f, base) {
   if (o_or_f instanceof Function)
     this.o_         = {},
-    this.keys_      = infuse.array([]),
+    this.keys_      = null,
     this.base_      = infuse.assert(base,
                         'infuse: attempted to construct a lazy '
                       + 'object without specifying a base object'),
@@ -112,7 +112,7 @@ we generate it once on-demand.
 
 ```js
 methods.keys = function () {
-  var ks = this.keys_;
+  var ks = this.pull().keys_;
   if (!ks) {
     var o = this.o_;
     ks = this.keys_ = infuse.array([]);
@@ -127,8 +127,81 @@ methods.keys = function () {
 ```js
 methods.values = function () {
   // We generate this as a derivative of the key array.
-  var o = this.o_;
-  return this.keys().map(function (k) {return o[k]});
+  var vs = this.pull().values_;
+  if (!vs) {
+    var o = this.o_;
+    vs = this.values_ = this.keys().map(function (k) {return o[k]});
+  }
+  return vs.pull();
+};
+```
+
+# Traversal
+
+Always go through the object in the same order.
+
+```js
+methods.each = function (fn) {
+  var ks = this.keys().get(),
+      o  = this.o_,
+      f  = infuse.fn.apply(this, arguments);
+  for (var i = 0, l = ks.length, k; i < l; ++i)
+    if (Object.prototype.hasOwnProperty.call(o, k = ks[i])
+        && f(o[k], k) === false)
+      break;
+  return this;
+};
+```
+
+Object values don't change; like arrays, objects are append-only, so the most
+that can happen is that any given key gets updated. Because of this, cursors
+can act on the key array directly.
+
+```js
+methods.cursor = function () {
+  var i = 0, o = this.o_, keys = this.keys();
+  return function (f) {
+    for (var ks = keys.get(), l = ks.length, k; i < l;)
+      if (Object.prototype.hasOwnProperty.call(o, k = ks[i++])
+          && f(o[k], k) === false)
+        break;
+  };
+};
+```
+
+# Retrieval
+
+Objects don't support `first` or `last`, but they do support `get`, which takes
+a string or array of strings.
+
+```js
+methods.get = function (k) {
+  var o = this.pull().o_;
+```
+
+```js
+  // get() -> the current backing object (don't modify this!)
+  if (k === void 0) return o;
+```
+
+```js
+  // get(k) -> o[k]
+  if ((typeof k === typeof '' || k instanceof String) &&
+      Object.prototype.hasOwnProperty.call(o, k))
+    return o[k];
+```
+
+```js
+  // get([k1, k2, ...]) = [get(k1), get(k2), ...]
+  if (n instanceof Array) {
+    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+    return r;
+  }
+```
+
+```js
+  // get(...) = fn(...)(this)
+  return infuse.fn.apply(this, arguments)(this);
 };
 ```
 
