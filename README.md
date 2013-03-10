@@ -85,3 +85,15 @@ You can also see the low-level stuff:
 
 - [cursors](doc/cursors.md)
 - [versions](doc/versions.md)
+
+## Building Infuse
+
+You'll need a fairly recent [node.js](http://nodejs.org) build, as well as
+UglifyJS to build `infuse.min.js`. If you don't have or want Uglify, you can
+`export NO_UGLIFY=yes`.
+
+Building is usually as simple as running `make`:
+
+    $ make
+    [test output]
+    $

@@ -33,3 +33,13 @@ var ys = xs.map('_ + 1');
 ys.version()                    -> 0
 ys.size()                       -> 3
 ys.get().join(',')              -> '2,3,4'
+ys.version() > 0                -> true
+
+As mentioned in the readme, transformations are stored so that incremental
+updates to the original array are reflected in any derivative arrays.
+
+xs.push(5)                      -> xs
+xs.size()                       -> 4
+xs.get(-1)                      -> 5
+ys.get(-1)                      -> 6
+ys.size()                       -> 4

@@ -10,7 +10,7 @@ INFUSE_DOCS  = $(patsubst test/%.js.sdoc,doc/%.md,$(wildcard test/*)) \
 
 .PHONY: all repl test
 
-all: infuse.js infuse-node.js infuse.min.js $(INFUSE_DOCS)
+all: test infuse.js infuse-node.js infuse.min.js $(INFUSE_DOCS)
 repl: infuse-node.js
 	node -e "infuse = require('./infuse-node'); \
 		 require('repl').start('infuse> ').context.infuse = infuse"
