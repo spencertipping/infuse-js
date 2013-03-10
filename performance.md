@@ -35,6 +35,7 @@ the update.
 | `values`     | O(n log n)       | O(1)             |
 | `cursor`     | O(n log n)       | O(1)             |
 | `get`        | O(log n)         | O(log n)         |
+| `push`       | O(log n)         | O(log n)         |
 
 ### Maximum allowable GC overhead
 
@@ -53,3 +54,4 @@ referenced by the object.
 | `values`     | O(n log n) | O(n)       | O(1)                 |
 | `cursor`     | O(n log n) | O(0)       | O(0)                 |
 | `get`        | O(log n)   | O(log n)   | O(0)                 |
+| `push`       | O(log n)   | O(log n)   | O(log n)             |

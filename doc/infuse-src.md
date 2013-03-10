@@ -1,16 +1,20 @@
 Infuse core | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-Introduction.
+# Introduction
+
 All Infuse objects support a large set of core methods. Many of these methods
 are implemented in terms of other, type-specific methods; for example, `each`
 is a type-specific method that is used for `all` and `any`. This file defines
 the global `infuse` function and the mechanism used to define type-specific
 infuse implementations.
 
+```js
 (function () {
   var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined;
+```
 
+```js
   var dispatcher = function (name) {
     var result = function (x) {
       for (var xs = result.alternatives, i = xs.length - 1, t; i >= 0; --i)
@@ -21,50 +25,70 @@ infuse implementations.
              + ') is not supported (no alternative accepted the supplied '
              + 'arguments)');
     };
+```
 
+```js
     result.alternatives = [];
     return result;
   };
+```
 
+```js
   var infuse_global = dispatcher('infuse');
   infuse_global.dispatcher = dispatcher;
+```
 
+```js
   infuse_global.hide = function () {
     infuse = original_infuse;
     original_infuse = null;
     delete infuse_global.hide;
     return infuse_global;
   };
+```
 
+```js
   infuse_global.unloaders = [];
   infuse_global.unload = function () {
     for (var xs = infuse_global.unloaders, i = 0, l = xs.length; i < l; ++i)
       xs[i]();
   };
+```
 
+```js
   infuse = infuse_global;
 })();
+```
 
+```js
 infuse.extend = function (body) {
   return body.call(infuse, infuse, infuse.prototype) || infuse;
 };
+```
 
+```js
 infuse.extend(function (infuse) {
+```
 
-Infuse function instantiation.
+# Infuse function instantiation
+
 We don't really advertise this because it isn't generally useful, but you can
 instantiate the global Infuse object as a class to enable prototype
 inheritance. Infuse uses this internally when you define new types.
 
+```js
 var as_ctor = {};
 infuse.alternatives.push(
   {accepts:   function (x) {return x === as_ctor},
    construct: function ()  {}});
+```
 
-Methods and type definition.
+# Methods and type definition
+
 All global methods are installed on `infuse.prototype`. Subclasses then inherit
 from `infuse` using the usual Javascript inheritance pattern.
 
+```js
 infuse.type = function (name, body) {
   var ctor = infuse[name] = function () {
     if (this.constructor !== ctor) {
@@ -76,5 +100,9 @@ infuse.type = function (name, body) {
   (ctor.prototype = new infuse(as_ctor)).constructor = ctor;
   return body.call(ctor, ctor, ctor.prototype) || ctor;
 };
+```
 
+```js
 });
+
+```

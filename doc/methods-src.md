@@ -1,54 +1,56 @@
 Infuse methods | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-Introduction.
+# Introduction
+
 This module defines most of the methods that are common to all Infuse types.
 Each of the methods defined here is based on implementations of a few required
 generic methods:
 
-| obj.each(f)           f(x1), f(x2), ...
-  obj.cursor()
-  obj.size()            must be a finite nonnegative integer
-  obj.get(n)            0 <= n < size
-  obj.force(n)          0 <= n
-  obj.derivative(f)     f is a generator function
+    obj.each(f)           f(x1), f(x2), ...
+    obj.cursor()
+    obj.size()            must be a finite nonnegative integer
+    obj.get(n)            0 <= n < size
+    obj.force(n)          0 <= n
+    obj.derivative(f)     f is a generator function
 
 Forcing may throw an error for certain types, limiting the set of operations
 that they support.
 
+```js
 infuse.extend(function (infuse, methods) {
+```
 
-Versions and derivatives.
+# Versions and derivatives
+
 There are some default implementations of things like `touch` and `pull`, which
 are generally straightforward. However, some types override them to increase
 efficiency (e.g. `infuse.object`).
 
+```js
 methods.touch = function () {
   // Unconditionally assume a change of some sort. Don't call this method
   // unless you actually change something!
   ++this.version_;
   return this;
 };
+```
 
+```js
 methods.pull = function () {
   var b = this.base(),
       v = b && b.pull().version();
   if (v && v > this.version_) this.force(b.size()).version_ = v;
   return this;
 };
+```
 
-methods.base = function () {
-  return this.base_;
-};
+# Sequence transformations
 
-methods.version = function () {
-  return this.version_;
-};
-
-Sequence transformations.
 The usual suspects: `map`, `flatmap`, etc. These apply to all data types based
 on the semantics of `derivative` and `cursor`.
 
+```js
 methods.map = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
@@ -56,7 +58,9 @@ methods.map = function (fn) {
     c(function (v, k) {emit(f(v, k), k)});
   });
 };
+```
 
+```js
 methods.flatmap = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
@@ -64,7 +68,9 @@ methods.flatmap = function (fn) {
     c(function (v, k) {infuse(f(v, k)).each(emit)});
   });
 };
+```
 
+```js
 methods.filter = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
@@ -72,7 +78,9 @@ methods.filter = function (fn) {
     c(function (v, k) {if (f(v, k)) emit(v, k)});
   });
 };
+```
 
+```js
 methods.mapfilter = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
@@ -83,8 +91,10 @@ methods.mapfilter = function (fn) {
     });
   });
 };
+```
 
-Reductions.
+# Reductions
+
 Most systems treat reductions as being generic across lazy and strict
 sequences. Infuse can't do this, however, because some sequences are push-lazy
 (and besides, Javascript isn't idiomatically lazy enough to have pull-lazy
@@ -111,6 +121,7 @@ any kind of "last" value. So if you want to fold it up, the best you can do is
 observe it at each change point, and to do that you ask for all of its
 reductions.
 
+```js
 methods.reductions = function (into, fn) {
   var f = infuse.fn.apply(this, Array.prototype.slice.call(arguments, 1)),
       c = this.cursor();
@@ -118,18 +129,23 @@ methods.reductions = function (into, fn) {
     c(function (v, k) {emit(into = f(into, v, k), k)});
   });
 };
+```
 
+```js
 methods.reduce = function (into, fn) {
   var f = infuse.fn.apply(this, Array.prototype.slice.call(arguments, 1));
   this.each(function (v, k) {into = f(into, v, k)});
   return into;
 };
+```
 
-Indexing.
+# Indexing
+
 You can group or index a sequence's values into an object. The index function
 should take an element (and optionally its key, position, whatever), and return
 a string for the index.
 
+```js
 methods.index = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
@@ -137,7 +153,9 @@ methods.index = function (fn) {
     c(function (v, k) {emit(v, f(v, k))});
   });
 };
+```
 
+```js
 methods.group = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
@@ -145,5 +163,9 @@ methods.group = function (fn) {
     c(function (v, k) {emit(v, f(v, k))});
   });
 };
+```
 
+```js
 });
+
+```

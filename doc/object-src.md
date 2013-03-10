@@ -1,7 +1,8 @@
 Infuse objects | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-Infuse objects.
+# Infuse objects
+
 Like Infuse arrays, objects can be constructed either by wrapping an existing
 object or by specifying a generator function. If you specify a generator, the
 object's value (as returned by `get`, etc) will be updated as new elements
@@ -12,14 +13,18 @@ Infuse objects are not considered to be ordered unless you call `keys` or
 guarantee traversal order; so you could request `keys` and `values` and know
 that `k[0]` corresponded to `v[0]`, for instance.
 
+```js
 infuse.extend(function (infuse) {
 infuse.type('object', function (object, methods) {
+```
 
-Object state.
+# Object state
+
 Like an Infuse array, an object has a backing which may be externally
 allocated, and for internally-allocated backings it also has a generator and a
 base.
 
+```js
 methods.initialize = function (o_or_f, base) {
   if (o_or_f instanceof Function)
     this.o_         = {},
@@ -39,16 +44,22 @@ methods.initialize = function (o_or_f, base) {
                     + 'backed by a real Javascript object and is '
                     + 'therefore a read-only view)');
     };
+```
 
+```js
   this.version_ = 0;
 };
+```
 
 Size is the number of distinct key/value pairs stored in the object. This
 function needs to be amortized O(1), so we rely on the backing key list.
 
+```js
 methods.size = function () {return this.keys().size()};
+```
 
-Derivatives.
+# Derivatives
+
 Objects can have derivatives just like arrays can, but the behavior is
 different. An object derivative means "the object will gain new key/value
 mappings in the future", much as an array derivative means "the array will grow
@@ -74,11 +85,14 @@ identify updates, reducing complexity from O(n) to O(k), and increasing
 generator emit complexity to O(log n) from O(1). (n is the number of keys in
 the object, and k is the number of changed keys.)
 
+```js
 methods.derivative = function (generator) {
   var f = infuse.fn.apply(this, arguments);
   return infuse.object(f, this);
 };
+```
 
+```js
 methods.force = function (n) {
   for (var o        = this.o_,
            got_data = true,
@@ -91,31 +105,44 @@ methods.force = function (n) {
     this.generator_(emit);
   return got_any ? this.touch() : this;
 };
+```
 
+```js
 methods.touch = function () {
   // Increment the version counter. In general you shouldn't need this, as the
   // version counter is automatically incremented by `push`.
   ++this.version_;
   return this;
 };
+```
 
+```js
 methods.push = function (v, k) {
   this.o_[k]        = v;
   this.versions_[k] = ++this.version_;
   return this;
 };
+```
 
+```js
 });
+```
 
-Object promotion.
+# Object promotion
+
 Detecting a vanilla object turns out to be tricky. We can't do the obvious `x
 instanceof Object` because everything is an instance of `Object`. Long story
 short, we have to rely on `Object.prototype.toString` to tell us.
 
+```js
 var obj_to_string = Object.prototype.toString.call({});
 infuse.alternatives.push(
   {accepts:   function (x) {return Object.prototype.toString.call(x) ===
                                    obj_to_string},
    construct: function (x) {return infuse.object(x)}});
+```
 
+```js
 });
+
+```

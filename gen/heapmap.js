@@ -1,52 +1,52 @@
-Infuse heapmap | Spencer Tipping
-Licensed under the terms of the MIT source code license
+// Infuse heapmap | Spencer Tipping
+// Licensed under the terms of the MIT source code license
 
-Introduction.
-A fairly trivial minheap-map implementation used by the cache as a priority
-queue. This heap stores objects independently from their priorities, so you can
-update an object's priority dynamically and it will heapify up or down
-accordingly.
+// Introduction.
+// A fairly trivial minheap-map implementation used by the cache as a priority
+// queue. This heap stores objects independently from their priorities, so you can
+// update an object's priority dynamically and it will heapify up or down
+// accordingly.
 
-A heap is an Infuse object, so it supports the usual set of methods. It also
-supports the following heap-specific methods:
+// A heap is an Infuse object, so it supports the usual set of methods. It also
+// supports the following heap-specific methods:
 
-| push(k, index) -> this        // insert, or update if already there
-  pop()          -> k           // remove item with minimum index
-  first(index)   -> [k1, ...]   // get all keys whose values are <= index
+// | push(k, index) -> this        // insert, or update if already there
+//   pop()          -> k           // remove item with minimum index
+//   first(index)   -> [k1, ...]   // get all keys whose values are <= index
 
-In every other way it behaves like an object that maps keys to heap indexes.
+// In every other way it behaves like an object that maps keys to heap indexes.
 
-Performance.
-Heap maps have the following performance characteristics:
+// Performance.
+// Heap maps have the following performance characteristics:
 
-Method       | worst-time | amortized time | ephemeral | persistent | amortized
-:-----       | :--------: | :------------: | :-------: | :--------: | :-------:
-`size`       | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
-`derivative` | O(1)       | O(1)           | O(1)      | O(0)       | O(0)
-`force`      | O(k log n) | O(k log n)     | O(k)      | O(k)       | O(k)
-`touch`      | θ(n)       | θ(n)           | O(n)      | O(k)       | O(k)
-`each`       | θ(n)       | θ(n)           | O(1)      | O(0)       | O(0)
-`keys`       | θ(n)       | Θ(n)           | Θ(n)      | O(0)       | O(0)
-`values`     | O(n)       | O(1)           | O(0)      | O(n)       | θ(1)
-`cursor`     | O(1)       | O(1)           | O(n)      | O(0)       | O(0)
-`get`        | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
-**Custom**
-`push`       | O(log n)   | O(log n)       | θ(1)      | θ(1)       | θ(1)
-`pop`        | O(log n)   | O(log n)       | θ(0)      | θ(-1)      | θ(-1)
-`first`      | θ(k)       | θ(k)           | θ(k)      | O(0)       | O(0)
+// Method       | worst-time | amortized time | ephemeral | persistent | amortized
+// :-----       | :--------: | :------------: | :-------: | :--------: | :-------:
+// `size`       | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
+// `derivative` | O(1)       | O(1)           | O(1)      | O(0)       | O(0)
+// `force`      | O(k log n) | O(k log n)     | O(k)      | O(k)       | O(k)
+// `touch`      | θ(n)       | θ(n)           | O(n)      | O(k)       | O(k)
+// `each`       | θ(n)       | θ(n)           | O(1)      | O(0)       | O(0)
+// `keys`       | θ(n)       | Θ(n)           | Θ(n)      | O(0)       | O(0)
+// `values`     | O(n)       | O(1)           | O(0)      | O(n)       | θ(1)
+// `cursor`     | O(1)       | O(1)           | O(n)      | O(0)       | O(0)
+// `get`        | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
+// **Custom**
+// `push`       | O(log n)   | O(log n)       | θ(1)      | θ(1)       | θ(1)
+// `pop`        | O(log n)   | O(log n)       | θ(0)      | θ(-1)      | θ(-1)
+// `first`      | θ(k)       | θ(k)           | θ(k)      | O(0)       | O(0)
 
 infuse.extend(function (infuse) {
 infuse.type('heapmap', function (heapmap, methods) {
 
-Heap state.
-A heap stores the ordering function, which takes two elements and returns true
-if the first should be above the second (so for a minheap, `a < b`). It also
-contains the element set, an internal map that keeps track of where each
-element is stored in the array, and, of course, a version.
+// Heap state.
+// A heap stores the ordering function, which takes two elements and returns true
+// if the first should be above the second (so for a minheap, `a < b`). It also
+// contains the element set, an internal map that keeps track of where each
+// element is stored in the array, and, of course, a version.
 
-Heapmaps are maps, so you can't store arbitrary data in them (well, you can,
-but then the map will break). If you want the map functionality, then the data
-you're storing must be a string.
+// Heapmaps are maps, so you can't store arbitrary data in them (well, you can,
+// but then the map will break). If you want the map functionality, then the data
+// you're storing must be a string.
 
 methods.initialize = function (ordering, generator, base) {
   // Default to a minheap of numeric/comparable things.
@@ -65,8 +65,8 @@ methods.initialize = function (ordering, generator, base) {
 
 methods.size = function () {return this.elements_.length};
 
-Derivatives.
-You can construct a derivative for any heapmap.
+// Derivatives.
+// You can construct a derivative for any heapmap.
 
 methods.derivative = function (generator) {
   return infuse.heapmap(ordering, generator, this);
@@ -80,8 +80,8 @@ methods.touch = function (touched_keys) {
   
 };
 
-Traversal.
-Heapmaps behave like Infuse objects.
+// Traversal.
+// Heapmaps behave like Infuse objects.
 
 methods.each = function () {
   var f = infuse.fn.apply(this, arguments);
@@ -182,3 +182,5 @@ methods.get = function (k) {
 
 });
 });
+
+// Generated by SDoc
