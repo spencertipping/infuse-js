@@ -22,21 +22,23 @@ infuse.fn.cache = infuse.cache(infuse.cache.lru({capacity: 2048}));
 ```
 
 ```js
-// Automatically clear out the function cache over time. There is no reason to
-// do this very quickly, since compiled functions don't hold any large
-// references (i.e. they aren't closures over user-specified data).
-//
-// In general it isn't safe to use intervals to control caches, since the
-// interval is a global reference that will prevent the whole cache from being
-// garbage-collected. However it is reasonable in this particular case because
-// the cache is already a global object.
-infuse.fn.cache_interval = setInterval(infuse.fn.cache.evict_one, 1000);
+infuse.fn.auto_gc = function () {
+  // Automatically clear out the function cache over time. There is no reason
+  // to do this very quickly, since compiled functions don't hold any large
+  // references (i.e. they aren't closures over user-specified data).
+  //
+  // In general it isn't safe to use intervals to control caches, since the
+  // interval is a global reference that will prevent the whole cache from
+  // being garbage-collected. However it is reasonable in this particular case
+  // because the cache is already a global object.
+  infuse.fn.cache_interval = setInterval(infuse.fn.cache.evict_one, 1000);
 ```
 
 ```js
-infuse.unloaders.push(function () {
-  clearInterval(infuse.fn.cache_interval);
-});
+  infuse.unloaders.push(function () {
+    clearInterval(infuse.fn.cache_interval);
+  });
+};
 ```
 
 # Regular expressions

@@ -161,9 +161,9 @@ infuse.type('heapmap', function (heapmap, methods) {
 // but then the map will break). If you want the map functionality, then the data
 // you're storing must be a string.
 
-methods.initialize = function (ordering, generator, base) {
+methods.initialize = function (above, generator, base) {
   // Default to a minheap of numeric/comparable things.
-  this.ordering_  = ordering || function (a, b) {return a < b};
+  this.above_     = above ? infuse.fn(above) : function (a, b) {return a < b};
   this.elements_  = [];
   this.positions_ = {};
   this.base_      = base || null;
@@ -182,7 +182,7 @@ methods.size = function () {return this.elements_.length};
 // You can construct a derivative for any heapmap.
 
 methods.derivative = function (generator) {
-  return infuse.heapmap(ordering, generator, this);
+  return infuse.heapmap(this.above_, generator, this);
 };
 
 methods.force = function (n) {
@@ -237,7 +237,7 @@ methods.get = function (k) {
           original_v = x.v;
       x.v = v;
 
-      return this.ordering(v, original_v)
+      return this.above_(v, original_v)
         ? this.heapify_up_(i)
         : this.heapify_down_(i);
     } else {
@@ -273,14 +273,14 @@ methods.get = function (k) {
         right = i << 1 | 1,
         xi    = xs[i].v,
         xl    = xs[left].v,
-        xr    = xs[right].v;
+        xr    = xs[right];      // this might not exist
 
-    if (this.ordering(xi, xl) && this.ordering(xi, xr))
+    if (this.above_(xi, xl) && !xr || this.above_(xi, xr.v))
       // We're done; neither child is greater.
       return this;
 
     // Swap with the greater of the two children.
-    var swap_index = this.ordering(xl, xr) ? xl : xr;
+    var swap_index = !xr || this.above_(xl, xr.v) ? left : right;
     return this.swap_(i, swap_index).heapify_down_(swap_index);
   };
 
@@ -288,7 +288,7 @@ methods.get = function (k) {
     var xs = this.elements_,
         up = i >>> 1;
 
-    return i && this.ordering(xs[i], xs[up])
+    return i && this.above_(xs[i], xs[up])
       ? this.swap_(i, up).heapify_up_(up)
       : this;
   };
@@ -373,7 +373,7 @@ infuse.cache = function (eviction_strategy) {
       var hit = cache[key];
       if (hit) {
         ++f.hits;
-        state.priority_queue.update(key, ++state.access_counter);
+        state.priority_queue.push(key, ++state.access_counter);
         return hit;
       }
 
@@ -603,23 +603,15 @@ methods.initialize = function (xs_or_f, base) {
   if (xs_or_f instanceof Function)
     this.xs_        = [],
     this.base_      = base,
-    this.generator_ = xs_or_f;
+    this.generator_ = xs_or_f,
+    this.version_   = 0;
   else
     this.xs_        = xs_or_f instanceof Array
                       ? xs_or_f
                       : infuse.toa(xs_or_f),
     this.base_      = null,
-    this.generator_ = function (emit) {
-      // For externally-backed arrays, no new elements can be generated.
-      throw new Error('infuse: attempted to request new elements '
-                    + 'for an array with no specified generator '
-                    + '(this usually means that the array is '
-                    + 'backed by a real Javascript array and is '
-                    + 'therefore a read-only view)');
-    };
-
-  // Important: set up the version. Derivative sequences use this information.
-  this.version_ = 0;
+    this.generator_ = null,
+    this.version_   = 1;
 };
 
 // Size is always expressed as the number of items currently realized, not the
@@ -627,7 +619,7 @@ methods.initialize = function (xs_or_f, base) {
 // (as its size is finite) and indefinite at the same time, and operations such as
 // `map` and `flatmap` will apply eagerly to the currently-realized part.
 
-methods.size = function () {return this.xs_.length};
+methods.size = function () {return this.pull().xs_.length};
 
 // Derivatives.
 // Laziness requires that we pass on certain metadata about the base whenever we
@@ -639,24 +631,35 @@ methods.derivative = function (generator) {
   return infuse.array(f, this);
 };
 
-// Forcing requests that elements be computed, up to the specified size. The
-// result may be smaller than `n` if fewer elements are available, and if no
-// elements are added then the version remains the same.
+// Forcing requests that elements be computed, up to the specified number of
+// updates. The result may be smaller than `n` if fewer elements are available,
+// and if no elements are added then the version remains the same. If `n` is
+// unspecified, it defaults to 32.
 
 methods.force = function (n) {
-  for (var xs           = this.xs_,
-           start_size   = xs.length,
-           current_size = -1,
-           emit         = function (x) {xs.push(x)};
-       xs.length > current_size && (current_size = xs.length) < n;)
+  infuse.assert(this.generator_,
+    'infuse: attempted to generate new elements for a non-derivative array');
+  if (n === void 0) n = 32;
+  for (var xs      = this.xs_,
+           start_n = n + 1,
+           start_l = xs.length,
+           emit    = function (x) {xs.push(x); return --n > 0};
+       start_n > (start_n = n);)
     this.generator_(emit);
-  return current_size > start_size ? this.touch() : this;
+  return xs.length > start_l ? this.touch() : this;
+};
+
+methods.push = function (v) {
+  infuse.assert(!this.base_, 'infuse: attempted to modify a derivative array');
+  this.xs_.push(v);
+  return this.touch();
 };
 
 // Key/value querying.
 // Methods to build out lists of keys and values. The `values` case is
 // particularly simple: we just return the current object. `keys` is unfortunate
-// and inefficient for arrays, so you probably shouldn't use it.
+// and inefficient for arrays, so you probably shouldn't use it. If you do use it
+// repeatedly, be sure to cache the result to avoid unnecessary recomputation.
 
 methods.keys = function () {
   for (var r = [], i = 0, l = this.size(); i < l; ++i) r.push(i);
@@ -682,10 +685,12 @@ methods.each = function () {
 // in the array exactly once. It runs eagerly but doesn't force anything.
 
 methods.cursor = function () {
-  var i = 0, self = this.pull();
+  var i = 0, self = this;
   return function (f) {
-    for (var xs = self.xs_, l = xs.length; i < l; ++i)
-      if (f(xs[i], i) === false) break;
+    for (var xs = self.pull().xs_, l = xs.length; i < l;)
+      // It's important to do the increment here so that it happens even if we
+      // break out of the loop.
+      if (f(xs[i], i++) === false) break;
   };
 };
 
@@ -703,7 +708,7 @@ methods.get = function (n, fn) {
   // get(n) -> xs[n] or xs[n + length] if n is negative
   if (typeof n === typeof 0 || n instanceof Number)
     if (n === n >> 0)
-      // Is n an integer? If so, use direct indexing.
+      // n is an integer; use direct indexing (but wrap if negative)
       return xs[n < 0 ? xs.length + n : n];
     else {
       // n is a float; use interpolation.
@@ -800,24 +805,18 @@ infuse.type('object', function (object, methods) {
 methods.initialize = function (o_or_f, base) {
   if (o_or_f instanceof Function)
     this.o_         = {},
+    this.keys_      = infuse.array([]),
     this.base_      = infuse.assert(base,
                         'infuse: attempted to construct a lazy '
                       + 'object without specifying a base object'),
-    this.versions_  = {},
-    this.generator_ = o_or_f;
+    this.generator_ = o_or_f,
+    this.version_   = 0;
   else
     this.o_         = o_or_f,
     this.base_      = null,
-    this.versions_  = null,
-    this.generator_ = function (emit) {
-      throw new Error('infuse: attempted to request new elements '
-                    + 'for an object with no specified generator '
-                    + '(this usually means that the object is '
-                    + 'backed by a real Javascript object and is '
-                    + 'therefore a read-only view)');
-    };
-
-  this.version_ = 0;
+    this.keys_      = null,
+    this.generator_ = null,
+    this.version_   = 1;
 };
 
 // Size is the number of distinct key/value pairs stored in the object. This
@@ -845,18 +844,13 @@ methods.size = function () {return this.keys().size()};
 // can then search this object and apply updates. This makes searching O(n) when
 // the object has been updated, O(1) otherwise.
 
-// If you need faster updating than this, you should look at `infuse.diff_object`;
-// this class is identical to `infuse.object` but uses a priority queue to
-// identify updates, reducing complexity from O(n) to O(k), and increasing
-// generator emit complexity to O(log n) from O(1). (n is the number of keys in
-// the object, and k is the number of changed keys.)
-
 methods.derivative = function (generator) {
   var f = infuse.fn.apply(this, arguments);
   return infuse.object(f, this);
 };
 
 methods.force = function (n) {
+  // FIXME
   for (var o        = this.o_,
            got_data = true,
            got_any  = false,
@@ -869,17 +863,35 @@ methods.force = function (n) {
   return got_any ? this.touch() : this;
 };
 
-methods.touch = function () {
-  // Increment the version counter. In general you shouldn't need this, as the
-  // version counter is automatically incremented by `push`.
-  ++this.version_;
+methods.push = function (v, k) {
+  infuse.assert(!this.base_, 'infuse: attempted to modify a derivative object');
+  var o = this.o_;
+  if (!Object.prototype.hasOwnProperty.call(o, k)) this.keys_.push(k);
+  this.touch().o_[k] = v;
   return this;
 };
 
-methods.push = function (v, k) {
-  this.o_[k]        = v;
-  this.versions_[k] = ++this.version_;
-  return this;
+// Key/value querying.
+// Keys and values are fairly straightforward to generate. We generally have the
+// keys array already, so we can just return a wrapper for it if we do. Otherwise
+// we generate it once on-demand.
+
+methods.keys = function () {
+  var ks = this.keys_;
+  if (!ks) {
+    var o = this.o_;
+    ks = this.keys_ = infuse.array([]);
+    for (var k in o)
+      if (Object.prototype.hasOwnProperty.call(o, k))
+        ks.push(k);
+  }
+  return ks;
+};
+
+methods.values = function () {
+  // We generate this as a derivative of the key array.
+  var o = this.o_;
+  return this.keys().map(function (k) {return o[k]});
 };
 
 });
@@ -912,6 +924,7 @@ infuse.alternatives.push(
 //   obj.get(n)            0 <= n < size
 //   obj.force(n)          0 <= n
 //   obj.derivative(f)     f is a generator function
+//   obj.push(v, k)
 
 // Forcing may throw an error for certain types, limiting the set of operations
 // that they support.
@@ -931,18 +944,22 @@ methods.touch = function () {
 };
 
 methods.pull = function () {
+  // Does nothing if we have no base.
   var b = this.base(),
       v = b && b.pull().version();
   if (v && v > this.version_) this.force(b.size()).version_ = v;
   return this;
 };
 
-methods.base = function () {
-  return this.base_;
-};
+methods.base    = function () {return this.base_};
+methods.version = function () {return this.version_};
 
-methods.version = function () {
-  return this.version_;
+methods.detach = function () {
+  // This is simple enough: just free references to the generator function and
+  // the base object. After this, push() will see that base_ is null and won't
+  // complain if you try to change the object.
+  this.base_ = this.generator_ = null;
+  return this;
 };
 
 // Sequence transformations.
@@ -1012,7 +1029,7 @@ methods.mapfilter = function (fn) {
 // reductions.
 
 methods.reductions = function (into, fn) {
-  var f = infuse.fn.apply(this, Array.prototype.slice.call(arguments, 1)),
+  var f = infuse.fnarg(arguments, 1),
       c = this.cursor();
   return this.derivative(function (emit) {
     c(function (v, k) {emit(into = f(into, v, k), k)});
@@ -1020,7 +1037,7 @@ methods.reductions = function (into, fn) {
 };
 
 methods.reduce = function (into, fn) {
-  var f = infuse.fn.apply(this, Array.prototype.slice.call(arguments, 1));
+  var f = infuse.fnarg(arguments, 1);
   this.each(function (v, k) {into = f(into, v, k)});
   return into;
 };

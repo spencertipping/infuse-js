@@ -29,23 +29,15 @@ methods.initialize = function (xs_or_f, base) {
   if (xs_or_f instanceof Function)
     this.xs_        = [],
     this.base_      = base,
-    this.generator_ = xs_or_f;
+    this.generator_ = xs_or_f,
+    this.version_   = 0;
   else
     this.xs_        = xs_or_f instanceof Array
                       ? xs_or_f
                       : infuse.toa(xs_or_f),
     this.base_      = null,
-    this.generator_ = function (emit) {
-      // For externally-backed arrays, no new elements can be generated.
-      throw new Error('infuse: attempted to request new elements '
-                    + 'for an array with no specified generator '
-                    + '(this usually means that the array is '
-                    + 'backed by a real Javascript array and is '
-                    + 'therefore a read-only view)');
-    };
-
-  // Important: set up the version. Derivative sequences use this information.
-  this.version_ = 0;
+    this.generator_ = null,
+    this.version_   = 1;
 };
 
 // Size is always expressed as the number of items currently realized, not the
@@ -53,7 +45,7 @@ methods.initialize = function (xs_or_f, base) {
 // (as its size is finite) and indefinite at the same time, and operations such as
 // `map` and `flatmap` will apply eagerly to the currently-realized part.
 
-methods.size = function () {return this.xs_.length};
+methods.size = function () {return this.pull().xs_.length};
 
 // Derivatives.
 // Laziness requires that we pass on certain metadata about the base whenever we
@@ -65,24 +57,35 @@ methods.derivative = function (generator) {
   return infuse.array(f, this);
 };
 
-// Forcing requests that elements be computed, up to the specified size. The
-// result may be smaller than `n` if fewer elements are available, and if no
-// elements are added then the version remains the same.
+// Forcing requests that elements be computed, up to the specified number of
+// updates. The result may be smaller than `n` if fewer elements are available,
+// and if no elements are added then the version remains the same. If `n` is
+// unspecified, it defaults to 32.
 
 methods.force = function (n) {
-  for (var xs           = this.xs_,
-           start_size   = xs.length,
-           current_size = -1,
-           emit         = function (x) {xs.push(x)};
-       xs.length > current_size && (current_size = xs.length) < n;)
+  infuse.assert(this.generator_,
+    'infuse: attempted to generate new elements for a non-derivative array');
+  if (n === void 0) n = 32;
+  for (var xs      = this.xs_,
+           start_n = n + 1,
+           start_l = xs.length,
+           emit    = function (x) {xs.push(x); return --n > 0};
+       start_n > (start_n = n);)
     this.generator_(emit);
-  return current_size > start_size ? this.touch() : this;
+  return xs.length > start_l ? this.touch() : this;
+};
+
+methods.push = function (v) {
+  infuse.assert(!this.base_, 'infuse: attempted to modify a derivative array');
+  this.xs_.push(v);
+  return this.touch();
 };
 
 // Key/value querying.
 // Methods to build out lists of keys and values. The `values` case is
 // particularly simple: we just return the current object. `keys` is unfortunate
-// and inefficient for arrays, so you probably shouldn't use it.
+// and inefficient for arrays, so you probably shouldn't use it. If you do use it
+// repeatedly, be sure to cache the result to avoid unnecessary recomputation.
 
 methods.keys = function () {
   for (var r = [], i = 0, l = this.size(); i < l; ++i) r.push(i);
@@ -108,10 +111,12 @@ methods.each = function () {
 // in the array exactly once. It runs eagerly but doesn't force anything.
 
 methods.cursor = function () {
-  var i = 0, self = this.pull();
+  var i = 0, self = this;
   return function (f) {
-    for (var xs = self.xs_, l = xs.length; i < l; ++i)
-      if (f(xs[i], i) === false) break;
+    for (var xs = self.pull().xs_, l = xs.length; i < l;)
+      // It's important to do the increment here so that it happens even if we
+      // break out of the loop.
+      if (f(xs[i], i++) === false) break;
   };
 };
 
@@ -129,7 +134,7 @@ methods.get = function (n, fn) {
   // get(n) -> xs[n] or xs[n + length] if n is negative
   if (typeof n === typeof 0 || n instanceof Number)
     if (n === n >> 0)
-      // Is n an integer? If so, use direct indexing.
+      // n is an integer; use direct indexing (but wrap if negative)
       return xs[n < 0 ? xs.length + n : n];
     else {
       // n is a float; use interpolation.

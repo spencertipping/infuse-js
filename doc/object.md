@@ -1,0 +1,9 @@
+# Infuse objects
+
+These are instantiated like arrays and support a similar API:
+
+```js
+var o = infuse({foo: 1, bar: 2, bif: 3});
+o.size()                        -> 3
+
+```

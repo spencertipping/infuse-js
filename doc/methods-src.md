@@ -13,6 +13,7 @@ generic methods:
     obj.get(n)            0 <= n < size
     obj.force(n)          0 <= n
     obj.derivative(f)     f is a generator function
+    obj.push(v, k)
 
 Forcing may throw an error for certain types, limiting the set of operations
 that they support.
@@ -38,9 +39,25 @@ methods.touch = function () {
 
 ```js
 methods.pull = function () {
+  // Does nothing if we have no base.
   var b = this.base(),
       v = b && b.pull().version();
   if (v && v > this.version_) this.force(b.size()).version_ = v;
+  return this;
+};
+```
+
+```js
+methods.base    = function () {return this.base_};
+methods.version = function () {return this.version_};
+```
+
+```js
+methods.detach = function () {
+  // This is simple enough: just free references to the generator function and
+  // the base object. After this, push() will see that base_ is null and won't
+  // complain if you try to change the object.
+  this.base_ = this.generator_ = null;
   return this;
 };
 ```
@@ -123,7 +140,7 @@ reductions.
 
 ```js
 methods.reductions = function (into, fn) {
-  var f = infuse.fn.apply(this, Array.prototype.slice.call(arguments, 1)),
+  var f = infuse.fnarg(arguments, 1),
       c = this.cursor();
   return this.derivative(function (emit) {
     c(function (v, k) {emit(into = f(into, v, k), k)});
@@ -133,7 +150,7 @@ methods.reductions = function (into, fn) {
 
 ```js
 methods.reduce = function (into, fn) {
-  var f = infuse.fn.apply(this, Array.prototype.slice.call(arguments, 1));
+  var f = infuse.fnarg(arguments, 1);
   this.each(function (v, k) {into = f(into, v, k)});
   return into;
 };

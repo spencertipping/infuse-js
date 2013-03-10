@@ -22,5 +22,29 @@ elements:
 
 ```js
 xs.get(0.5)                     -> 1.5
+```
+
+```js
+var quadratic = function (a, b, x) {return a + (b - a) * x*x};
+xs.get(0.5, quadratic)          -> 1.25
+xs.get(0, quadratic)            -> 1
+```
+
+And without arguments, `get` returns a regular Javascript array:
+
+```js
+xs.get()[0]                     -> 1
+xs.get().length                 -> 3
+```
+
+# Transformations
+
+Arrays can be transformed eagerly and lazily. For example:
+
+```js
+var ys = xs.map('_ + 1');
+ys.version()                    -> 0
+ys.size()                       -> 3
+ys.get().join(',')              -> '2,3,4'
 
 ```

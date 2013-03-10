@@ -23,24 +23,18 @@ infuse.type('object', function (object, methods) {
 methods.initialize = function (o_or_f, base) {
   if (o_or_f instanceof Function)
     this.o_         = {},
+    this.keys_      = infuse.array([]),
     this.base_      = infuse.assert(base,
                         'infuse: attempted to construct a lazy '
                       + 'object without specifying a base object'),
-    this.versions_  = {},
-    this.generator_ = o_or_f;
+    this.generator_ = o_or_f,
+    this.version_   = 0;
   else
     this.o_         = o_or_f,
     this.base_      = null,
-    this.versions_  = null,
-    this.generator_ = function (emit) {
-      throw new Error('infuse: attempted to request new elements '
-                    + 'for an object with no specified generator '
-                    + '(this usually means that the object is '
-                    + 'backed by a real Javascript object and is '
-                    + 'therefore a read-only view)');
-    };
-
-  this.version_ = 0;
+    this.keys_      = null,
+    this.generator_ = null,
+    this.version_   = 1;
 };
 
 // Size is the number of distinct key/value pairs stored in the object. This
@@ -68,18 +62,13 @@ methods.size = function () {return this.keys().size()};
 // can then search this object and apply updates. This makes searching O(n) when
 // the object has been updated, O(1) otherwise.
 
-// If you need faster updating than this, you should look at `infuse.diff_object`;
-// this class is identical to `infuse.object` but uses a priority queue to
-// identify updates, reducing complexity from O(n) to O(k), and increasing
-// generator emit complexity to O(log n) from O(1). (n is the number of keys in
-// the object, and k is the number of changed keys.)
-
 methods.derivative = function (generator) {
   var f = infuse.fn.apply(this, arguments);
   return infuse.object(f, this);
 };
 
 methods.force = function (n) {
+  // FIXME
   for (var o        = this.o_,
            got_data = true,
            got_any  = false,
@@ -92,17 +81,35 @@ methods.force = function (n) {
   return got_any ? this.touch() : this;
 };
 
-methods.touch = function () {
-  // Increment the version counter. In general you shouldn't need this, as the
-  // version counter is automatically incremented by `push`.
-  ++this.version_;
+methods.push = function (v, k) {
+  infuse.assert(!this.base_, 'infuse: attempted to modify a derivative object');
+  var o = this.o_;
+  if (!Object.prototype.hasOwnProperty.call(o, k)) this.keys_.push(k);
+  this.touch().o_[k] = v;
   return this;
 };
 
-methods.push = function (v, k) {
-  this.o_[k]        = v;
-  this.versions_[k] = ++this.version_;
-  return this;
+// Key/value querying.
+// Keys and values are fairly straightforward to generate. We generally have the
+// keys array already, so we can just return a wrapper for it if we do. Otherwise
+// we generate it once on-demand.
+
+methods.keys = function () {
+  var ks = this.keys_;
+  if (!ks) {
+    var o = this.o_;
+    ks = this.keys_ = infuse.array([]);
+    for (var k in o)
+      if (Object.prototype.hasOwnProperty.call(o, k))
+        ks.push(k);
+  }
+  return ks;
+};
+
+methods.values = function () {
+  // We generate this as a derivative of the key array.
+  var o = this.o_;
+  return this.keys().map(function (k) {return o[k]});
 };
 
 });

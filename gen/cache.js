@@ -74,7 +74,7 @@ infuse.cache = function (eviction_strategy) {
       var hit = cache[key];
       if (hit) {
         ++f.hits;
-        state.priority_queue.update(key, ++state.access_counter);
+        state.priority_queue.push(key, ++state.access_counter);
         return hit;
       }
 

@@ -12,7 +12,8 @@ INFUSE_DOCS  = $(patsubst test/%.js.sdoc,doc/%.md,$(wildcard test/*)) \
 
 all: infuse.js infuse-node.js infuse.min.js $(INFUSE_DOCS)
 repl: infuse-node.js
-	node -e 'infuse = require("./infuse-node");'
+	node -e "infuse = require('./infuse-node'); \
+		 require('repl').start('infuse> ').context.infuse = infuse"
 
 test: infuse-node.js $(INFUSE_TESTS)
 	@for file in $(INFUSE_TESTS); do \

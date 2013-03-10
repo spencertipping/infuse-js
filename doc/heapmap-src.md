@@ -54,9 +54,9 @@ but then the map will break). If you want the map functionality, then the data
 you're storing must be a string.
 
 ```js
-methods.initialize = function (ordering, generator, base) {
+methods.initialize = function (above, generator, base) {
   // Default to a minheap of numeric/comparable things.
-  this.ordering_  = ordering || function (a, b) {return a < b};
+  this.above_     = above ? infuse.fn(above) : function (a, b) {return a < b};
   this.elements_  = [];
   this.positions_ = {};
   this.base_      = base || null;
@@ -82,7 +82,7 @@ You can construct a derivative for any heapmap.
 
 ```js
 methods.derivative = function (generator) {
-  return infuse.heapmap(ordering, generator, this);
+  return infuse.heapmap(this.above_, generator, this);
 };
 ```
 
@@ -160,7 +160,7 @@ methods.get = function (k) {
 ```
 
 ```js
-      return this.ordering(v, original_v)
+      return this.above_(v, original_v)
         ? this.heapify_up_(i)
         : this.heapify_down_(i);
     } else {
@@ -202,18 +202,18 @@ methods.get = function (k) {
         right = i << 1 | 1,
         xi    = xs[i].v,
         xl    = xs[left].v,
-        xr    = xs[right].v;
+        xr    = xs[right];      // this might not exist
 ```
 
 ```js
-    if (this.ordering(xi, xl) && this.ordering(xi, xr))
+    if (this.above_(xi, xl) && !xr || this.above_(xi, xr.v))
       // We're done; neither child is greater.
       return this;
 ```
 
 ```js
     // Swap with the greater of the two children.
-    var swap_index = this.ordering(xl, xr) ? xl : xr;
+    var swap_index = !xr || this.above_(xl, xr.v) ? left : right;
     return this.swap_(i, swap_index).heapify_down_(swap_index);
   };
 ```
@@ -225,7 +225,7 @@ methods.get = function (k) {
 ```
 
 ```js
-    return i && this.ordering(xs[i], xs[up])
+    return i && this.above_(xs[i], xs[up])
       ? this.swap_(i, up).heapify_up_(up)
       : this;
   };

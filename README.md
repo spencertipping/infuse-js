@@ -50,7 +50,7 @@ index.get()             // -> {'0': [3, 9, 15], '1': [7, 13], '2': [5, 11]}
 
 Garbage collection can be an issue when building views of large sequences, so
 Infuse gives you a constant-time method to detach a view's source and make it
-mutable:
+independently mutable:
 
 ```js
 index.detach()          // -> index
@@ -61,4 +61,18 @@ index.get()             // -> {'0': [3, 9, 15, 17], '1': [7, 13], '2': [5, 11]}
 At this point, all data associated with `xs` can be garbage-collected once `xs`
 goes out of scope.
 
-## MOAR DOCS TODO
+## Semantics
+
+Infuse objects generally share semantics with the Javascript objects they
+represent, but with a few major exceptions:
+
+1. You shouldn't modify objects that Infuse allocates.
+2. There is no API to modify existing elements in an Infuse collection (that
+   is, collections are append-only).
+3. Derivative collections (e.g. `map` results) inherit changes from their
+   source. This also works for multi-level collections.
+
+For more details, check out the narrative tests for each data type:
+
+- [arrays](doc/array.md)
+- [objects](doc/object.md)

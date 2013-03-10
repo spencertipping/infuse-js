@@ -31,8 +31,8 @@ infuse.assert = function (x, message) {
 ```
 
 ```js
-infuse.assert_equal = function (x, y, message) {
-  infuse.assert(x === y, message);
+infuse.assert_equal = function (x, y) {
+  infuse.assert(x === y, x + ' != ' + y);
   return x;
 };
 ```
