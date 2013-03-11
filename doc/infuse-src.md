@@ -61,9 +61,12 @@ infuse implementations.
 ```
 
 ```js
-infuse.extend = function (body) {
-  return body.call(infuse, infuse, infuse.prototype) || infuse;
-};
+// Bind a local variable so that extend() works even after hiding the global.
+(function (infuse) {
+  infuse.extend = function (body) {
+    return body.call(infuse, infuse, infuse.prototype) || infuse;
+  };
+})(infuse);
 ```
 
 ```js
@@ -99,6 +102,24 @@ infuse.type = function (name, body) {
   };
   (ctor.prototype = new infuse(as_ctor)).constructor = ctor;
   return body.call(ctor, ctor, ctor.prototype) || ctor;
+};
+```
+
+```js
+infuse.mixins = {};
+infuse.mixin = function (name, body) {
+  var methods = {};
+  body.call(methods, methods);
+```
+
+```js
+  return infuse.mixins[name] = function (proto) {
+    // Mix methods into proto.
+    for (var k in methods)
+      if (Object.prototype.hasOwnProperty.call(methods, k))
+        proto[k] = methods[k];
+    return proto;
+  };
 };
 ```
 

@@ -19,34 +19,30 @@ that they support.
 
 infuse.extend(function (infuse, methods) {
 
-Versions and derivatives.
-There are some default implementations of things like `touch` and `pull`, which
-are generally straightforward. However, some types override them to increase
-efficiency (e.g. `infuse.object`).
+Key/value querying.
+These are simply array objects based on the values emitted by the cursor.
 
-methods.touch = function () {
-  // Unconditionally assume a change of some sort. Don't call this method
-  // unless you actually change something!
-  ++this.version_;
-  return this;
+methods.keys = function () {
+  var c = this.cursor();
+  return infuse.array(function (emit) {
+    c(function (v, k) {return emit(k, k)});
+  }, this);
 };
 
-methods.pull = function () {
-  // Does nothing if we have no base.
-  var b = this.base(),
-      v = b && b.pull().version();
-  if (v && v > this.version_) this.force(b.size()).version_ = v;
-  return this;
+// This just converts the object to an Infuse array. For arrays themselves,
+// this function returns 'this'.
+methods.values = function () {
+  var c = this.cursor();
+  return infuse.array(c, this);
 };
 
-methods.base    = function () {return this.base_};
-methods.version = function () {return this.version_};
+Traversal.
+The cursor order can be used to define `each`; we just throw the cursor away at
+the end.
 
-methods.detach = function () {
-  // This is simple enough: just free references to the generator function and
-  // the base object. After this, push() will see that base_ is null and won't
-  // complain if you try to change the object.
-  this.base_ = this.generator_ = null;
+methods.each = function (fn) {
+  var f = infuse.fn.apply(this, arguments);
+  this.cursor()(f);
   return this;
 };
 
@@ -58,7 +54,7 @@ methods.map = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
   return this.derivative(function (emit) {
-    c(function (v, k) {emit(f(v, k), k)});
+    c(function (v, k) {return emit(f(v, k), k)});
   });
 };
 
@@ -66,7 +62,8 @@ methods.flatmap = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
   return this.derivative(function (emit) {
-    c(function (v, k) {infuse(f(v, k)).each(emit)});
+    c(function (v, k) {var y = f(v, k);
+                       return y && infuse(f(v, k)).each(emit)});
   });
 };
 
@@ -74,7 +71,7 @@ methods.filter = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
   return this.derivative(function (emit) {
-    c(function (v, k) {if (f(v, k)) emit(v, k)});
+    c(function (v, k) {if (f(v, k)) return emit(v, k)});
   });
 };
 
@@ -84,7 +81,7 @@ methods.mapfilter = function (fn) {
   return this.derivative(function (emit) {
     c(function (v, k) {
       var y = f(v, k);
-      if (y) emit(y, k);
+      if (y) return emit(y, k);
     });
   });
 };
@@ -120,7 +117,7 @@ methods.reductions = function (into, fn) {
   var f = infuse.fnarg(arguments, 1),
       c = this.cursor();
   return this.derivative(function (emit) {
-    c(function (v, k) {emit(into = f(into, v, k), k)});
+    c(function (v, k) {return emit(into = f(into, v, k), k)});
   });
 };
 
@@ -139,7 +136,7 @@ methods.index = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
   return infuse.object(function (emit) {
-    c(function (v, k) {emit(v, f(v, k))});
+    c(function (v, k) {return emit(v, f(v, k))});
   });
 };
 
@@ -147,7 +144,7 @@ methods.group = function (fn) {
   var f = infuse.fn.apply(this, arguments),
       c = this.cursor();
   return infuse.multi_object(function (emit) {
-    c(function (v, k) {emit(v, f(v, k))});
+    c(function (v, k) {return emit(v, f(v, k))});
   });
 };
 

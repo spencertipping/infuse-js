@@ -1,0 +1,76 @@
+Infuse pull-propagation mixin | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+All Infuse collections support some form of versioning and derivative updating.
+This mixin assumes the presence of a few instance variables and provides the
+methods required to create linked derivatives. To use this mixin, you need to
+define/maintain the following:
+
+| this.base_            the source for this derivative collection
+  this.generator_       a generator function that accepts an emitter
+  this.version_         the current version of this object
+  this.push_(v, k)      a function that adds a new element to the object
+
+Given that, this mixin provides a complete implementation of pull-propagation,
+as well as defining a wrapper `push` method that takes care of version
+updating and derivative checking.
+
+infuse.extend(function (infuse) {
+infuse.mixin('pull', function (methods) {
+
+Trivial accessors.
+We assume the presence of `base_`, `version_`, and `generator_`. Of these,
+`generator_` is kept private because accessing it changes its state.
+
+methods.base    = function () {return this.base_};
+methods.version = function () {return this.version_};
+
+Pull propagation.
+You can pull any collection with a base (it's a nop for independent
+collections), and you can specify a maximum number of elements to update
+synchronously. This maximum is useful if the base collection is infinite or has
+no well-defined size.
+
+An invariant is that invoking `pull` with no arguments will cause the receiver
+to become up-to-date with the base. As a result, the receiver's version will
+bet set equal to the base's version.
+
+methods.pull = function (n) {
+  var b = this.base_,
+      v = b && b.pull().version();
+  if (v && v > this.version_) {
+    for (var pushed = 0,
+             diff   = b.size() - this.size(),
+             limit  = n === void 0 ? b.size() - this.size() : n,
+             self   = this,
+             last   = -1,
+             emit   = function (v, k) {self.push_(v, k);
+                                       return ++pushed < limit};
+         last < (last = pushed);)
+      this.generator_(emit);
+    if (pushed >= diff) this.version_ = v;
+    else                ++this.version_;
+  }
+  return this;
+};
+
+methods.push = function (v, k) {
+  infuse.assert(!this.base_, 'infuse: attempted to push onto a derivative');
+  ++this.version_;
+  return this.push_(v, k);
+};
+
+Detaching.
+You can detach any pull-propagated collection from its source to allow the
+source to be garbage-collected. Doing this also enables the collection to be
+modified by using `push`. `detach` does nothing if the collection is already
+detached.
+
+methods.detach = function () {
+  this.base_ = this.generator_ = null;
+  return this;
+};
+
+});
+});

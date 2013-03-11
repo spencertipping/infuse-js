@@ -45,9 +45,12 @@
   infuse = infuse_global;
 })();
 
-infuse.extend = function (body) {
-  return body.call(infuse, infuse, infuse.prototype) || infuse;
-};
+// Bind a local variable so that extend() works even after hiding the global.
+(function (infuse) {
+  infuse.extend = function (body) {
+    return body.call(infuse, infuse, infuse.prototype) || infuse;
+  };
+})(infuse);
 
 infuse.extend(function (infuse) {
 
@@ -75,6 +78,20 @@ infuse.type = function (name, body) {
   };
   (ctor.prototype = new infuse(as_ctor)).constructor = ctor;
   return body.call(ctor, ctor, ctor.prototype) || ctor;
+};
+
+infuse.mixins = {};
+infuse.mixin = function (name, body) {
+  var methods = {};
+  body.call(methods, methods);
+
+  return infuse.mixins[name] = function (proto) {
+    // Mix methods into proto.
+    for (var k in methods)
+      if (Object.prototype.hasOwnProperty.call(methods, k))
+        proto[k] = methods[k];
+    return proto;
+  };
 };
 
 });

@@ -2,10 +2,10 @@
 
 **Note: this library doesn't work yet.**
 
-Infuse.js implements inversions, futures, invariants, and a series of useful
-methods that apply to objects and sequences. This is done non-intrusively by
-constructing a wrapper around the object, similar to the way that jQuery wraps
-the DOM.
+Infuse.js provides a uniform API for accessing Javascript-native objects and
+arrays, as well as defining futures, signals, inversions, invariants, and other
+types of its own. Like jQuery, it maintains a separate prototype for shared
+methods and does not monkey-patch any builtin prototypes.
 
 ## Basic usage
 
@@ -90,7 +90,7 @@ You can also see the low-level stuff:
 
 You'll need a fairly recent [node.js](http://nodejs.org) build, as well as
 UglifyJS to build `infuse.min.js`. If you don't have or want Uglify, you can
-`export NO_UGLIFY=yes`.
+`export UGLIFY=no`.
 
 Building is usually as simple as running `make`:
 

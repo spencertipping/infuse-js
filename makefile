@@ -1,5 +1,6 @@
 # Order matters for JS deps.
 INFUSE_JS_DEPS = gen/infuse.js \
+		 gen/mixin-pull.js \
 		 gen/util.js gen/heapmap.js gen/cache.js gen/fn.js \
 		 gen/array.js gen/object.js gen/methods.js
 
@@ -33,18 +34,28 @@ infuse-node.js: infuse.js
 	echo 'module.exports = infuse;' >> $@
 
 # Generator rules
+ifeq ($(UGLIFY), no)
+%.min.js: %.js
+	@echo 'note: not really minifying $@ because UGLIFY=no'
+	cp $< $@
+else
 %.min.js: %.js
 	grep -v '^\s*//' $< | uglifyjs > $@
+endif
 
 gen/%.js: src/%.js.sdoc
 	./sdoc cat code.js::$< > $@
+ifneq ($(UGLIFY), no)
 	uglifyjs $@ > /dev/null || rm $@
+endif
 
 gen/%-test.js: test/%.js.sdoc
 	./sdoc cat code.js::$< \
 	  | sed -r 's/^(.*)->\s*(.*)$$/infuse.assert_equal((\1), (\2));/g' \
 	  > $@
+ifneq ($(UGLIFY), no)
 	uglifyjs $@ > /dev/null || rm $@
+endif
 
 doc/%.md: test/%.js.sdoc
 	./sdoc cat markdown::$< > $@

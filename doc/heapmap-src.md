@@ -8,29 +8,19 @@ queue. This heap stores objects independently from their priorities, so you can
 update an object's priority dynamically and it will heapify up or down
 accordingly.
 
-Note that **heaps are not real Infuse objects** in that they are inherently
-mutable. This means that you can't make derivatives of them, so all of the
-usual transformation methods will fail if you use them with heaps.
+Like other Infuse collections, heap maps support lazy derivatives; but 
 
 # Performance
 
 Heap maps have the following performance characteristics:
 
-Method       | worst-time | amortized time | ephemeral | persistent | amortized
-:-----       | :--------: | :------------: | :-------: | :--------: | :-------:
-`size`       | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
-`derivative` | O(1)       | O(1)           | O(1)      | O(0)       | O(0)
-`force`      | O(k log n) | O(k log n)     | O(k)      | O(k)       | O(k)
-`touch`      | Θ(n)       | Θ(n)           | O(n)      | O(k)       | O(k)
-`each`       | Θ(n)       | Θ(n)           | O(1)      | O(0)       | O(0)
-`keys`       | Θ(n)       | Θ(n)           | Θ(n)      | O(0)       | O(0)
-`values`     | O(n)       | O(1)           | O(0)      | O(n)       | Θ(1)
-`cursor`     | O(1)       | O(1)           | O(n)      | O(0)       | O(0)
-`get`        | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
-**Custom**   |            |                |           |            |
-`push`       | O(log n)   | O(log n)       | Θ(1)      | Θ(1)       | Θ(1)
-`pop`        | O(log n)   | O(log n)       | Θ(0)      | Θ(-1)      | Θ(-1)
-`first`      | Θ(k)       | Θ(k)           | Θ(k)      | O(0)       | O(0)
+Method | worst-time | amortized time | ephemeral | persistent | amortized
+:----- | :--------: | :------------: | :-------: | :--------: | :-------:
+`size` | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
+`each` | Θ(n)       | Θ(n)           | O(1)      | O(0)       | O(0)
+`get`  | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
+`push` | O(log n)   | O(log n)       | Θ(1)      | Θ(1)       | Θ(1)
+`pop`  | O(log n)   | O(log n)       | Θ(0)      | Θ(-1)      | Θ(-1)
 
 ```js
 infuse.extend(function (infuse) {
@@ -42,44 +32,28 @@ infuse.type('heapmap', function (heapmap, methods) {
 A heap stores the ordering function, which takes two elements and returns true
 if the first should be above the second (so for a minheap, `a < b`). It also
 contains the element set, an internal map that keeps track of where each
-element is stored in the array, and, of course, a version.
+element is stored in the array.
 
-Heapmaps are maps, so you can't store arbitrary data in them (well, you can,
-but then the map will break). If you want the map functionality, then the data
-you're storing must be a string.
+Heapmaps are maps, so you can't store arbitrary data in them (well, you can I
+guess, but then the map will break). If you want the map functionality, then
+the data you're storing must be a string.
 
 ```js
-methods.initialize = function (above) {
-  // Default to a minheap of numeric/comparable things.
-  this.above_     = above ? infuse.fn(above) : function (a, b) {return a < b};
-  this.elements_  = [];
-  this.positions_ = {};
+methods.initialize = function (above, generator, base) {
+  this.above_ = above ? infuse.fn.apply(this, arguments)
+                      : function (a, b) {return a < b};
+  this.xs_  = [];
+  this.map_ = {};
+```
+
+```js
+  this.base_      = base;
+  this.generator_ = generator;
 };
 ```
 
 ```js
-methods.size = function () {return this.elements_.length};
-```
-
-# Derivatives
-
-All derivative methods are disabled because heapmaps are too mutable to
-sensibly transform them.
-
-```js
-methods.derivative = function (generator) {
-  throw new Error('infuse: cannot create derivative of a heap');
-};
-```
-
-```js
-methods.force = function (n) {
-  throw new Error('infuse: cannot force a heap');
-};
-```
-
-```js
-methods.touch = function () {return this};
+methods.size = function () {return this.xs_.length};
 ```
 
 # Traversal
@@ -90,7 +64,7 @@ layout of the heap.
 ```js
 methods.each = function () {
   var f = infuse.fn.apply(this, arguments);
-  for (var xs = this.elements_, i = 0, l = xs.length; i < l; ++i)
+  for (var xs = this.xs_, i = 0, l = xs.length; i < l; ++i)
     if (f(xs[i].k, i) === false) break;
   return this;
 };
@@ -98,16 +72,16 @@ methods.each = function () {
 
 ```js
 methods.get = function (k) {
-  var map = this.positions_;
+  var map = this.map_;
   return Object.prototype.hasOwnProperty.call(map, k)
-    ? this.elements_[map[k]].v
+    ? this.xs_[map[k]].v
     : infuse.fn.apply(this, arguments)(this);
 };
 ```
 
 ```js
 methods.peek = function () {
-  var xs = this.elements_;
+  var xs = this.xs_;
   if (!xs.length) return void 0;
   return xs[0].k;
 };
@@ -115,8 +89,8 @@ methods.peek = function () {
 
 ```js
 methods.pop = function () {
-  var xs  = this.elements_,
-      map = this.positions_;
+  var xs  = this.xs_,
+      map = this.map_;
   if (!xs.length) return void 0;      // can't pop an empty heap
   var first = xs[0];
   xs[0] = xs.pop();                   // standard last->first...
@@ -129,8 +103,8 @@ methods.pop = function () {
 
 ```js
 methods.push = function (k, v) {
-  var xs  = this.elements_,
-      map = this.positions_;
+  var xs  = this.xs_,
+      map = this.map_;
   if (Object.prototype.hasOwnProperty.call(map, k)) {
     // Update, not insert. Change the value, then heapify up or down
     // depending on the value ordering.
@@ -154,8 +128,8 @@ methods.push = function (k, v) {
 
 ```js
 methods.swap_ = function (i, j) {
-  var xs  = this.elements_,
-      map = this.positions_,
+  var xs  = this.xs_,
+      map = this.map_,
       tmp = xs[i];
   xs[i] = xs[j];                      // swap the elements
   xs[j] = tmp;
@@ -167,7 +141,7 @@ methods.swap_ = function (i, j) {
 
 ```js
 methods.heapify_down_ = function (i) {
-  var xs = this.elements_;
+  var xs = this.xs_;
   if (i << 1 >= xs.length)
     // Can't heapify down beyond the bottom of the heap
     return this;
@@ -198,7 +172,7 @@ methods.heapify_down_ = function (i) {
 
 ```js
 methods.heapify_up_ = function (i) {
-  var xs = this.elements_,
+  var xs = this.xs_,
       up = i >>> 1;
 ```
 

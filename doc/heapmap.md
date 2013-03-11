@@ -5,7 +5,7 @@ Heapmaps are basically priority queues. They aren't normal Infuse objects
 make derivatives out of them.
 
 ```js
-var h = infuse.heapmap();       // uses minheap of numbers by default
+var h = new infuse.heapmap();   // uses minheap of numbers by default
 h.push('foo', 0)                -> h
 h.push('bar', 1)                -> h
 h.peek()                        -> 'foo'
@@ -24,6 +24,7 @@ h.push('baz', 3)                -> h
 h.pop()                         -> 'foo'
 h.pop()                         -> 'bar'
 h.pop()                         -> 'bif'
-h.size()                        -> 1
+h.pop()                         -> 'baz'
+h.size()                        -> 0
 
 ```

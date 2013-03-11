@@ -20,6 +20,15 @@ infuse.extend(function (infuse) {
 infuse.type('array', function (array, methods) {
 ```
 
+# Mixins
+
+Arrays are "pulling" collections: derivatives are linked to their sources, not
+the other way around.
+
+```js
+infuse.mixins.pull(methods);
+```
+
 # Array state
 
 Every Infuse array is backed by a Javascript array. If the backing was provided
@@ -34,7 +43,7 @@ methods.initialize = function (xs_or_f, base) {
   if (xs_or_f instanceof Function)
     this.xs_        = [],
     this.base_      = base,
-    this.generator_ = xs_or_f,
+    this.generator_ = infuse.fn(xs_or_f),
     this.version_   = 0;
   else
     this.xs_        = xs_or_f instanceof Array
@@ -68,70 +77,15 @@ methods.derivative = function (generator) {
 };
 ```
 
-Forcing requests that elements be computed, up to the specified number of
-updates. The result may be smaller than `n` if fewer elements are available,
-and if no elements are added then the version remains the same. If `n` is
-unspecified, it defaults to 32.
-
 ```js
-methods.force = function (n) {
-  infuse.assert(this.generator_,
-    'infuse: attempted to generate new elements for a non-derivative array');
-  if (n === void 0) n = 32;
-  for (var xs      = this.xs_,
-           start_n = n + 1,
-           start_l = xs.length,
-           emit    = function (x) {xs.push(x); return --n > 0};
-       start_n > (start_n = n);)
-    this.generator_(emit);
-  return xs.length > start_l ? this.touch() : this;
-};
-```
-
-```js
-methods.push = function (v) {
-  infuse.assert(!this.base_, 'infuse: attempted to modify a derivative array');
-  this.xs_.push(v);
-  return this.touch();
-};
-```
-
-# Key/value querying
-
-Methods to build out lists of keys and values. The `values` case is
-particularly simple: we just return the current object. `keys` is unfortunate
-and inefficient for arrays, so you probably shouldn't use it. If you do use it
-repeatedly, be sure to cache the result to avoid unnecessary recomputation.
-
-```js
-methods.keys = function () {
-  for (var r = [], i = 0, l = this.size(); i < l; ++i) r.push(i);
-  return infuse.array(r);
-};
-```
-
-```js
-methods.values = function () {return this};
+methods.values = function () {return this.pull()};
 ```
 
 # Traversal
 
-Infuse uses the `each` method to implement a number of other things, so it has
-a minimal protocol: the iterator function can return `false` to break out of
-the loop. We're required to provide an implementation.
-
-```js
-methods.each = function () {
-  this.pull();
-  var f = infuse.fn.apply(this, arguments);
-  for (var xs = this.xs_, i = 0, l = xs.length; i < l; ++i)
-    if (f(xs[i], i) === false) break;
-  return this;
-};
-```
-
-Similar to `each` is `cursor`, which returns a closure that runs over each item
-in the array exactly once. It runs eagerly but doesn't force anything.
+A cursor is a stateful iterator that takes an emitter function and invokes it
+once for each item in the array. It re-checks the array's size each time it is
+called, so a cursor can represent a collection whose size changes over time.
 
 ```js
 methods.cursor = function () {

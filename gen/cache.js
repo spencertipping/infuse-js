@@ -56,7 +56,7 @@ infuse.cache = function (eviction_strategy) {
       if (key === null && generate === null) {
         state.size           = 0,
         state.access_counter = 0,
-        state.priority_queue = infuse.heapmap(),
+        state.priority_queue = new infuse.heapmap(),
         f.hits               = 0,
         f.evictions          = 0,
         f.misses             = 0,

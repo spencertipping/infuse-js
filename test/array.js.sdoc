@@ -43,3 +43,13 @@ xs.size()                       -> 4
 xs.get(-1)                      -> 5
 ys.get(-1)                      -> 6
 ys.size()                       -> 4
+
+This includes things like filters and flatmaps, but with the caveat that
+already-realized elements won't be recomputed:
+
+var zs = xs.flatmap('[_ + 1, _ + 2]');
+zs.size()                       -> 8
+zs.get().join(',')              -> '2,3,3,4,4,5,6,7'
+
+xs.push('foo')                  -> xs
+zs.get().join(',')              -> '2,3,3,4,4,5,6,7,foo1,foo2'
