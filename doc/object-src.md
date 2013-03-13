@@ -18,6 +18,11 @@ infuse.extend(function (infuse) {
 infuse.type('object', function (object, methods) {
 ```
 
+```js
+// Use pull-propagation updating
+infuse.mixins.pull(methods);
+```
+
 # Object state
 
 Like an Infuse array, an object has a backing which may be externally
@@ -28,26 +33,36 @@ base.
 methods.initialize = function (o_or_f, base) {
   if (o_or_f instanceof Function)
     this.o_         = {},
-    this.keys_      = null,
     this.base_      = infuse.assert(base,
-                        'infuse: attempted to construct a lazy '
-                      + 'object without specifying a base object'),
+                        'infuse: attempted to construct a derivative '
+                      + 'object without specifying a base'),
     this.generator_ = o_or_f,
-    this.version_   = 0;
+    this.version_   = 0,
+    this.journal_   = infuse.heapmap();
   else
     this.o_         = o_or_f,
     this.base_      = null,
-    this.keys_      = null,
     this.generator_ = null,
-    this.version_   = 1;
+    this.version_   = 1,
+    this.journal_   = null;
 };
 ```
 
 Size is the number of distinct key/value pairs stored in the object. This
-function needs to be amortized O(1), so we rely on the backing key list.
+function needs to be amortized O(1), so we use the journal to tell us how many
+items we have.
 
 ```js
-methods.size = function () {return this.keys().size()};
+methods.size = function () {return this.pull().journal().size()};
+```
+
+```js
+methods.push_ = function (v, k) {
+  var o = this.o_;
+  o[k] = v;
+  this.journal().push(this.version_, k);
+  return this;
+};
 ```
 
 # Derivatives
@@ -67,7 +82,7 @@ arbitrarily larger than the object it represents (since it's storing each
 intermediate change).
 
 As a result, we don't keep the journal this way. Instead, we just use an object
-that maps each key to the last version at which it was modified. Each cursor
+that maps each key to the last version at which it was modified. Each generator
 can then search this object and apply updates. This makes searching O(n) when
 the object has been updated, O(1) otherwise.
 
@@ -79,92 +94,42 @@ methods.derivative = function (generator) {
 ```
 
 ```js
-methods.force = function (n) {
-  // FIXME
-  for (var o        = this.o_,
-           got_data = true,
-           got_any  = false,
-           emit     = function (v, k) {--n;
-                                       got_data = true;
-                                       o[k]     = v};
-       n > 0 && got_data;
-       got_any = got_any || got_data, got_data = false)
-    this.generator_(emit);
-  return got_any ? this.touch() : this;
-};
+methods.journal = function () {
+  var j = this.journal_;
+  if (!j) {
+    var o = this.o_,
+        v = this.version_;
 ```
 
 ```js
-methods.push = function (v, k) {
-  infuse.assert(!this.base_, 'infuse: attempted to modify a derivative object');
-  var o = this.o_;
-  if (!Object.prototype.hasOwnProperty.call(o, k)) this.keys_.push(k);
-  this.touch().o_[k] = v;
-  return this;
-};
-```
-
-# Key/value querying
-
-Keys and values are fairly straightforward to generate. We generally have the
-keys array already, so we can just return a wrapper for it if we do. Otherwise
-we generate it once on-demand.
-
-```js
-methods.keys = function () {
-  var ks = this.pull().keys_;
-  if (!ks) {
-    var o = this.o_;
-    ks = this.keys_ = infuse.array([]);
+    // Update all keys to the current version.
+    j = this.journal_ = infuse.heapmap();
     for (var k in o)
       if (Object.prototype.hasOwnProperty.call(o, k))
-        ks.push(k);
+        j.push(v, k);
   }
-  return ks;
-};
-```
-
-```js
-methods.values = function () {
-  // We generate this as a derivative of the key array.
-  var vs = this.pull().values_;
-  if (!vs) {
-    var o = this.o_;
-    vs = this.values_ = this.keys().map(function (k) {return o[k]});
-  }
-  return vs.pull();
+  return j;
 };
 ```
 
 # Traversal
 
-Always go through the object in the same order.
+This is tricky. We need to go through the object's keys in the right order, but
+we can't use the `keys` function to do it because `keys` is defined in terms of
+`generator`. Instead, we maintain a maxheap of key -> version and use that to
+pull changes.
+
+Heap generators aren't the same as generators for other objects; see
+`infuse.heapmap` for details.
 
 ```js
-methods.each = function (fn) {
-  var ks = this.keys().get(),
-      o  = this.o_,
-      f  = infuse.fn.apply(this, arguments);
-  for (var i = 0, l = ks.length, k; i < l; ++i)
-    if (Object.prototype.hasOwnProperty.call(o, k = ks[i])
-        && f(o[k], k) === false)
-      break;
-  return this;
-};
-```
-
-Object values don't change; like arrays, objects are append-only, so the most
-that can happen is that any given key gets updated. Because of this, cursors
-can act on the key array directly.
-
-```js
-methods.cursor = function () {
-  var i = 0, o = this.o_, keys = this.keys();
-  return function (f) {
-    for (var ks = keys.get(), l = ks.length, k; i < l;)
-      if (Object.prototype.hasOwnProperty.call(o, k = ks[i++])
-          && f(o[k], k) === false)
-        break;
+methods.generator = function () {
+  var journal_generator = this.journal().generator(),
+      o                 = this.o_;
+  return function (emit) {
+    // The version generator passes the version as 'v' and the key as 'k'; we
+    // just need to translate that into our value for the key.
+    return journal_generator(function (v, k) {return emit(o[k], k)});
   };
 };
 ```
@@ -200,8 +165,8 @@ methods.get = function (k) {
 ```
 
 ```js
-  // get(...) = fn(...)(this)
-  return infuse.fn.apply(this, arguments)(this);
+  // get(...) = fn(...)(this, this.id())
+  return infuse.fn.apply(this, arguments)(this, this.id());
 };
 ```
 

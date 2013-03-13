@@ -66,7 +66,7 @@ infuse.cache.lru = function (options) {
     if (key === null && generate === null) {
       state.size           = 0,
       state.access_counter = 0,
-      state.priority_queue = new infuse.heapmap(),
+      state.priority_queue = infuse.heapmap(),
       f.hits               = 0,
       f.evictions          = 0,
       f.misses             = 0,
@@ -88,7 +88,7 @@ infuse.cache.lru = function (options) {
     var hit = cache[key];
     if (hit) {
       ++f.hits;
-      state.priority_queue.push(key, ++state.access_counter);
+      state.priority_queue.push(++state.access_counter, key);
       return hit;
     }
 ```
@@ -103,7 +103,7 @@ infuse.cache.lru = function (options) {
       ++f.evictions;
       evict(cache, state);
     }
-    state.priority_queue.push(key, ++state.access_counter);
+    state.priority_queue.push(++state.access_counter, key);
     return cache[key] = value;
   };
 };

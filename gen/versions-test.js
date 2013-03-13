@@ -19,13 +19,13 @@ infuse.assert_equal((xs.size()                               ), (3));
 // array gets five new elements, for instance; there is no 1:1 relationship, just
 // the requirement that each change be atomic.)
 
-// Derivatives are generally updated using cursors. A cursor is a one-pass
+// Derivatives are generally updated using generators. A generator is a one-pass
 // iterator over an object that invokes an emitter function. Emitters usually wrap
 // the `push` method in some fairly trivial way. For example:
 
-var c  = xs.cursor();
+var g  = xs.generator();
 var ys = xs.derivative(function (emit) {
-  c(function (v, k) {
+  g(function (v, k) {
     emit(v, k);
   });
 });
@@ -39,9 +39,9 @@ infuse.assert_equal((ys.get().join(',')                      ), ('1,2,3'));
 // how `map` is implemented:
 
 var f      = infuse.fn('_ * 3');
-var c2     = xs.cursor();
+var g2     = xs.generator();
 var mapped = xs.derivative(function (emit) {
-  c2(function (v, k) {
+  g2(function (v, k) {
     emit(f(v, k), k);
   });
 });

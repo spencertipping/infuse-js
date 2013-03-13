@@ -16,7 +16,13 @@ infuse.assert_equal((infuse.fn('x + _', {x: 'foo'})('bar')   ), ('foobar'));
 // expressions. You can also add your own types by appending elements to
 // `infuse.fn.alternatives`.
 
-infuse.assert_equal((infuse.fn(/f(..)/)('foo')               ), ('oo'));
+infuse.assert_equal((infuse.fn(/f(..)/)('foo')[0]            ), ('oo'));
+infuse.assert_equal((infuse.fn(/f(..)/)('bar')               ), (null));
+infuse.assert_equal((infuse.fn(/f(.)(.)/)('foo').length      ), (2));
+infuse.assert_equal((infuse.fn(/f(.)(.)/)('foo')[0]          ), ('o'));
+infuse.assert_equal((infuse.fn(/f(.)(.)/)('foo')[1]          ), ('o'));
+infuse.assert_equal((infuse.fn(/foo*/)('fooooo')             ), ('fooooo'));
+infuse.assert_equal((infuse.fn(/foo*/)('baaaar')             ), (null));
 
 // And naturally, functions go straight through without any modification.
 

@@ -3,20 +3,23 @@
 // (generally they're just used internally for LRU caches and such), and you can't
 // make derivatives out of them.
 
-var h = new infuse.heapmap();   // uses minheap of numbers by default
-infuse.assert_equal((h.push('foo', 0)                ), (h));
-infuse.assert_equal((h.push('bar', 1)                ), (h));
+var h = infuse.heapmap();       // uses minheap of numbers by default
+infuse.assert_equal((h.push(0, 'foo')                ), (h));
+infuse.assert_equal((h.push(1, 'bar')                ), (h));
+infuse.assert_equal((h.size()                        ), (2));
 infuse.assert_equal((h.peek()                        ), ('foo'));
 infuse.assert_equal((h.get('foo')                    ), (0));
-infuse.assert_equal((h.push('bif', 2)                ), (h));
-infuse.assert_equal((h.push('baz', -1)               ), (h));
+infuse.assert_equal((h.push(2, 'bif')                ), (h));
+infuse.assert_equal((h.push(-1, 'baz')               ), (h));
+infuse.assert_equal((h.size()                        ), (4));
 
 // At this point `baz` is at the top of the heap, but we can change its heap index
 // to rearrange stuff.
 
 infuse.assert_equal((h.peek()                        ), ('baz'));
 infuse.assert_equal((h.get('baz')                    ), (-1));
-infuse.assert_equal((h.push('baz', 3)                ), (h));
+infuse.assert_equal((h.push(3, 'baz')                ), (h));
+infuse.assert_equal((h.size()                        ), (4));
 infuse.assert_equal((h.pop()                         ), ('foo'));
 infuse.assert_equal((h.pop()                         ), ('bar'));
 infuse.assert_equal((h.pop()                         ), ('bif'));

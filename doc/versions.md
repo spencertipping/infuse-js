@@ -24,14 +24,14 @@ it increases each time an object is changed. (A "change" here can mean that an
 array gets five new elements, for instance; there is no 1:1 relationship, just
 the requirement that each change be atomic.)
 
-Derivatives are generally updated using cursors. A cursor is a one-pass
+Derivatives are generally updated using generators. A generator is a one-pass
 iterator over an object that invokes an emitter function. Emitters usually wrap
 the `push` method in some fairly trivial way. For example:
 
 ```js
-var c  = xs.cursor();
+var g  = xs.generator();
 var ys = xs.derivative(function (emit) {
-  c(function (v, k) {
+  g(function (v, k) {
     emit(v, k);
   });
 });
@@ -49,9 +49,9 @@ how `map` is implemented:
 
 ```js
 var f      = infuse.fn('_ * 3');
-var c2     = xs.cursor();
+var g2     = xs.generator();
 var mapped = xs.derivative(function (emit) {
-  c2(function (v, k) {
+  g2(function (v, k) {
     emit(f(v, k), k);
   });
 });

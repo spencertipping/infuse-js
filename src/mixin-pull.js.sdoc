@@ -2,7 +2,7 @@ Infuse pull-propagation mixin | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-All Infuse collections support some form of versioning and derivative updating.
+All Infuse collections support some form of derivatives and dynamic updating.
 This mixin assumes the presence of a few instance variables and provides the
 methods required to create linked derivatives. To use this mixin, you need to
 define/maintain the following:
@@ -28,30 +28,25 @@ methods.version = function () {return this.version_};
 
 Pull propagation.
 You can pull any collection with a base (it's a nop for independent
-collections), and you can specify a maximum number of elements to update
-synchronously. This maximum is useful if the base collection is infinite or has
-no well-defined size.
+collections). An invariant is that invoking `pull` with no arguments will cause
+the receiver to become up-to-date with the base. As a result, the receiver's
+version will bet set equal to the base's version.
 
-An invariant is that invoking `pull` with no arguments will cause the receiver
-to become up-to-date with the base. As a result, the receiver's version will
-bet set equal to the base's version.
-
-methods.pull = function (n) {
+methods.pull = function () {
   var b = this.base_,
       v = b && b.pull().version();
+
+  // Invoking generators is potentially expensive, so only do it if there's a
+  // version discrepancy.
   if (v && v > this.version_) {
-    for (var pushed = 0,
-             diff   = b.size() - this.size(),
-             limit  = n === void 0 ? b.size() - this.size() : n,
-             self   = this,
-             last   = -1,
-             emit   = function (v, k) {self.push_(v, k);
-                                       return ++pushed < limit};
-         last < (last = pushed);)
-      this.generator_(emit);
-    if (pushed >= diff) this.version_ = v;
-    else                ++this.version_;
+    // Optimistically pre-increment the version so that any push_ calls made by
+    // the generator will see the new version.
+    ++this.version_;
+    var self = this;
+    this.generator_(function (v, k) {self.push_(v, k)}, this.id());
+    this.version_ = v;
   }
+
   return this;
 };
 
@@ -68,7 +63,13 @@ modified by using `push`. `detach` does nothing if the collection is already
 detached.
 
 methods.detach = function () {
+  if (this.base_) this.base_.detach_derivative(this);
   this.base_ = this.generator_ = null;
+  return this;
+};
+
+// Do nothing; we don't track derivatives.
+methods.detach_derivative = function (derivative) {
   return this;
 };
 

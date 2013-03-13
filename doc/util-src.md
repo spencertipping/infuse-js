@@ -10,6 +10,11 @@ infuse.extend(function (infuse) {
 ```
 
 ```js
+var id = 0;
+infuse.gen_id = function () {return 'infuse-' + ++id};
+```
+
+```js
 infuse.toa   = function (xs)    {return Array.prototype.slice.call(xs)};
 infuse.slice = function (xs, n) {return Array.prototype.slice.call(xs, n)};
 ```
@@ -34,6 +39,19 @@ infuse.assert = function (x, message) {
 infuse.assert_equal = function (x, y) {
   infuse.assert(x === y, x + ' != ' + y);
   return x;
+};
+```
+
+```js
+infuse.msb = function (x) {
+  // Index of most-significant bit of x, where msb(1) = 0.
+  for (var lower = 0, upper = 64; lower + 1 < upper;) {
+    var mid     = lower + upper >>> 1,
+        shifted = x >>> mid;
+    if (shifted && shifted !== x) lower = mid;
+    else                          upper = mid;
+  }
+  return lower;
 };
 ```
 

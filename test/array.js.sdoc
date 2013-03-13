@@ -1,4 +1,6 @@
 Infuse arrays.
+See also the [Infuse array source](array-src.md).
+
 When you say `infuse([1, 2, 3])`, Infuse selects the `infuse.array` alternative
 and invokes that instead, as if you had written `infuse.array([1, 2, 3])`:
 

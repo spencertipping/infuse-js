@@ -1,39 +1,39 @@
-// Incremental update cursors.
-// Every object type defines a `cursor` method that gives you a single-pass,
-// generally constant-memory iterator for a data structure. Cursors are used by
+// Incremental update generators.
+// Every object type defines a `generator` method that gives you a single-pass,
+// generally constant-memory iterator for a data structure. Generators are used by
 // `map`, `filter`, etc, to build and maintain derivative data structures. For
 // example:
 
 var arr = [1, 2, 3, 4, 5];
 var xs  = infuse(arr);
-var c   = xs.cursor();
+var g   = xs.generator();
 
-// Now we can invoke the cursor on a function that takes `value, key` pairs.
+// Now we can invoke the generator on a function that takes `value, key` pairs.
 // Returning `false` from this function causes it to stop iterating until we call
-// the cursor again.
+// the generator again.
 
-c(function (x, i) {
+g(function (x, i) {
 infuse.assert_equal((  x                             ), (1));
 infuse.assert_equal((  i                             ), (0));
   return false;                 // stops iteration for the moment
 });
 
-c(function (x, i) {
+g(function (x, i) {
 infuse.assert_equal((  i > 0                         ), (true));
 infuse.assert_equal((  x === arr[i]                  ), (true));
 });
 
-// Now the cursor is up-to-date; calling it further won't have any effect:
+// Now the generator is up-to-date; calling it further won't have any effect:
 
 var called = false;
-c(function () {called = true});
+g(function () {called = true});
 infuse.assert_equal((called                          ), (false));
 
-// However, if we add a new element and then call the cursor, we'll get that
+// However, if we add a new element and then call the generator, we'll get that
 // update:
 
 xs.push(6);
-c(function (x, i) {
+g(function (x, i) {
 infuse.assert_equal((  x                             ), (6));
 infuse.assert_equal((  i                             ), (5));
 });

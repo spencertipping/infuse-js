@@ -1,5 +1,7 @@
 # Infuse objects
 
+See also the [Infuse object source](object-src.md).
+
 These are instantiated like arrays and support a similar API:
 
 ```js
@@ -16,5 +18,22 @@ var mapped = o.map('_ + 1');
 mapped.size()                   -> 3
 mapped.get('foo')               -> 2
 mapped.get('bar')               -> 3
+```
+
+And like any Infuse object, changes you make to the base will be reflected in
+the mapped output:
+
+```js
+o.push(4, 'baz')                -> o
+o.size()                        -> 4
+mapped.size()                   -> 4
+mapped.get('baz')               -> 5
+```
+
+```js
+o.push(5, 'five')               -> o
+o.push(6, 'six')                -> o
+mapped.get('five')              -> 6
+mapped.get('six')               -> 7
 
 ```

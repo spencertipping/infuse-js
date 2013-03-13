@@ -8,7 +8,7 @@ Each of the methods defined here is based on implementations of a few required
 generic methods:
 
     obj.each(f)           f(x1), f(x2), ...
-    obj.cursor()
+    obj.generator()
     obj.size()            must be a finite nonnegative integer
     obj.get(n)            0 <= n < size
     obj.force(n)          0 <= n
@@ -22,37 +22,54 @@ that they support.
 infuse.extend(function (infuse, methods) {
 ```
 
+# Instance identification
+
+For various reasons it becomes useful to have an object-key reference for any
+Infuse object. This value is used as the second argument to functions given to
+`get`.
+
+```js
+methods.id = function () {
+  var id = this.id_;
+  if (!id) id = this.id_ = infuse.gen_id();
+  return id;
+};
+```
+
 # Key/value querying
 
-These are simply array objects based on the values emitted by the cursor.
+These are simply array objects based on the values emitted by the generator.
 
 ```js
 methods.keys = function () {
-  var c = this.cursor();
-  return infuse.array(function (emit) {
-    c(function (v, k) {return emit(k, k)});
+  var g = this.generator();
+  return infuse.array(function (emit, id) {
+    g(function (v, k) {return emit(k, k)}, id);
   }, this);
 };
 ```
 
 ```js
-// This just converts the object to an Infuse array. For arrays themselves,
-// this function returns 'this'.
+// This just converts the object to an Infuse array. It's important that this
+// method returns a distinct object; otherwise things like detach() might be
+// sent to the wrong receiver.
 methods.values = function () {
-  var c = this.cursor();
-  return infuse.array(c, this);
+  var g = this.generator();
+  return infuse.array(g, this);
 };
 ```
 
 # Traversal
 
-The cursor order can be used to define `each`; we just throw the cursor away at
-the end.
+The generator order can be used to define `each`; we just throw the generator
+away at the end. There is no ID associated with an `each` operation, so it will
+do nothing for asynchronous objects. (If you want to handle asynchronous
+operations, you should use `on`.)
 
 ```js
 methods.each = function (fn) {
   var f = infuse.fn.apply(this, arguments);
-  this.cursor()(f);
+  this.generator()(f);
   return this;
 };
 ```
@@ -60,14 +77,14 @@ methods.each = function (fn) {
 # Sequence transformations
 
 The usual suspects: `map`, `flatmap`, etc. These apply to all data types based
-on the semantics of `derivative` and `cursor`.
+on the semantics of `derivative` and `generator`.
 
 ```js
 methods.map = function (fn) {
   var f = infuse.fn.apply(this, arguments),
-      c = this.cursor();
-  return this.derivative(function (emit) {
-    c(function (v, k) {return emit(f(v, k), k)});
+      g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(f(v, k), k)}, id);
   });
 };
 ```
@@ -75,10 +92,10 @@ methods.map = function (fn) {
 ```js
 methods.flatmap = function (fn) {
   var f = infuse.fn.apply(this, arguments),
-      c = this.cursor();
-  return this.derivative(function (emit) {
-    c(function (v, k) {var y = f(v, k);
-                       return y && infuse(f(v, k)).each(emit)});
+      g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {var y = f(v, k);
+                       return y && infuse(f(v, k)).each(emit)}, id);
   });
 };
 ```
@@ -86,9 +103,9 @@ methods.flatmap = function (fn) {
 ```js
 methods.filter = function (fn) {
   var f = infuse.fn.apply(this, arguments),
-      c = this.cursor();
-  return this.derivative(function (emit) {
-    c(function (v, k) {if (f(v, k)) return emit(v, k)});
+      g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {if (f(v, k)) return emit(v, k)}, id);
   });
 };
 ```
@@ -96,12 +113,12 @@ methods.filter = function (fn) {
 ```js
 methods.mapfilter = function (fn) {
   var f = infuse.fn.apply(this, arguments),
-      c = this.cursor();
-  return this.derivative(function (emit) {
-    c(function (v, k) {
+      g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {
       var y = f(v, k);
       if (y) return emit(y, k);
-    });
+    }, id);
   });
 };
 ```
@@ -137,9 +154,9 @@ reductions.
 ```js
 methods.reductions = function (into, fn) {
   var f = infuse.fnarg(arguments, 1),
-      c = this.cursor();
-  return this.derivative(function (emit) {
-    c(function (v, k) {return emit(into = f(into, v, k), k)});
+      g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(into = f(into, v, k), k)}, id);
   });
 };
 ```
@@ -161,20 +178,20 @@ a string for the index.
 ```js
 methods.index = function (fn) {
   var f = infuse.fn.apply(this, arguments),
-      c = this.cursor();
-  return infuse.object(function (emit) {
-    c(function (v, k) {return emit(v, f(v, k))});
-  });
+      g = this.generator();
+  return infuse.object(function (emit, id) {
+    g(function (v, k) {return emit(v, f(v, k))}, id);
+  }, this);
 };
 ```
 
 ```js
 methods.group = function (fn) {
   var f = infuse.fn.apply(this, arguments),
-      c = this.cursor();
-  return infuse.multi_object(function (emit) {
-    c(function (v, k) {return emit(v, f(v, k))});
-  });
+      g = this.generator();
+  return infuse.multiobject(function (emit, id) {
+    g(function (v, k) {return emit(v, f(v, k))}, id);
+  }, this);
 };
 ```
 

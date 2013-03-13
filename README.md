@@ -79,12 +79,15 @@ function:
 
 - [arrays](doc/array.md)
 - [objects](doc/object.md)
+- [futures](doc/future.md)
+- [signals](doc/signal.md)
 - [fn](doc/fn.md)
 
 You can also see the low-level stuff:
 
-- [cursors](doc/cursors.md)
+- [generators](doc/generators.md)
 - [versions](doc/versions.md)
+- [heapmap](doc/heapmap.md)
 
 ## Building Infuse
 

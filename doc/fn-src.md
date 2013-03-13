@@ -21,6 +21,12 @@ infuse.fn       = infuse.dispatcher('infuse.fn');
 infuse.fn.cache = infuse.cache(infuse.cache.lru({capacity: 2048}));
 ```
 
+# Automatic fn cache GC
+
+If you have a long-running application that uses dynamically-generated
+functions, you may want to enable this. In most cases it won't matter much
+because the cache has a hard upper bound.
+
 ```js
 infuse.fn.auto_gc = function () {
   // Automatically clear out the function cache over time. There is no reason
@@ -61,17 +67,19 @@ infuse.fn.alternatives.push(
   {accepts:   function (x) {return x.constructor === RegExp},
    construct: function (regexp) {
      return infuse.fn.regexp_group_count(regexp)
-       // We have match groups; concatenate and return them as a single
-       // string.
+       // We have match groups; return them as an array.
        ? function (x) {
            var result = regexp.exec(x);
-           return result && Array.prototype.slice.call(result, 1).join("");
+           return result && Array.prototype.slice.call(result, 1);
          }
 ```
 
 ```js
-       // No match groups; just return the matchdata object.
-       : function (x) {return regexp.exec(x)};
+       // No match groups; just return the matched string.
+       : function (x) {
+           var result = regexp.exec(x);
+           return result && result[0];
+         };
    }});
 ```
 
@@ -105,7 +113,7 @@ specified to bind closure variables. Function compilation is expensive, so we
 use the function cache to prevent unnecessary recompilation.
 
 ```js
-infuse.fn.is_path = function (s) {return /^[\.\[]/.test(s)};
+infuse.fn.is_path = function (s) {return /^\./.test(s)};
 infuse.fn.is_js   = function (s) {return /^[-+\/~!$\w([{'"]/.test(s)};
 ```
 

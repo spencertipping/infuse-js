@@ -64,6 +64,16 @@ eventual size of a lazy sequence. Any given lazy sequence will be both finite
 methods.size = function () {return this.pull().xs_.length};
 ```
 
+We mixin the `pull` behavior, which relies on this `push_` method to actually
+add things to the array. We don't need to worry about versioning.
+
+```js
+methods.push_ = function (v, k) {
+  this.xs_.push(v);
+  return this;
+};
+```
+
 # Derivatives
 
 Laziness requires that we pass on certain metadata about the base whenever we
@@ -77,24 +87,21 @@ methods.derivative = function (generator) {
 };
 ```
 
-```js
-methods.values = function () {return this.pull()};
-```
-
 # Traversal
 
-A cursor is a stateful iterator that takes an emitter function and invokes it
-once for each item in the array. It re-checks the array's size each time it is
-called, so a cursor can represent a collection whose size changes over time.
+A generator is a stateful iterator that takes an emitter function and invokes
+it once for each item in the array. It re-checks the array's size each time it
+is called, so a generator can represent a collection whose size changes over
+time.
 
 ```js
-methods.cursor = function () {
+methods.generator = function () {
   var i = 0, self = this;
-  return function (f) {
+  return function (emit) {
     for (var xs = self.pull().xs_, l = xs.length; i < l;)
       // It's important to do the increment here so that it happens even if we
       // break out of the loop.
-      if (f(xs[i], i++) === false) break;
+      if (emit(xs[i], i++) === false) return false;
   };
 };
 ```
@@ -142,8 +149,8 @@ methods.get = function (n, fn) {
 ```
 
 ```js
-  // get(...) = fn(...)(this)
-  return infuse.fn.apply(this, arguments)(this);
+  // get(...) = fn(...)(this, this.id())
+  return infuse.fn.apply(this, arguments)(this, this.id());
 };
 ```
 

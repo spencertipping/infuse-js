@@ -7,21 +7,25 @@
 // update an object's priority dynamically and it will heapify up or down
 // accordingly.
 
-// Like other Infuse collections, heap maps support lazy derivatives; but 
+// Like other Infuse collections, heap maps support lazy derivatives. Unlike other
+// collections, however, heaps are not append-only. This makes lazy derivatives
+// interesting, as we might need to update any element at any point.
 
-// Performance.
-// Heap maps have the following performance characteristics:
+// To deal with this, a heap generator doesn't follow the same rules that other
+// generators do. Instead, its guarantee is that successively emitted elements
+// will have increasing heap indexes (so they are descending in the heap). The
+// generator tracks the last heap index emitted and emits elements greater than
+// that.
 
-// Method | worst-time | amortized time | ephemeral | persistent | amortized
-// :----- | :--------: | :------------: | :-------: | :--------: | :-------:
-// `size` | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
-// `each` | Θ(n)       | Θ(n)           | O(1)      | O(0)       | O(0)
-// `get`  | O(1)       | O(1)           | O(0)      | O(0)       | O(0)
-// `push` | O(log n)   | O(log n)       | Θ(1)      | Θ(1)       | Θ(1)
-// `pop`  | O(log n)   | O(log n)       | Θ(0)      | Θ(-1)      | Θ(-1)
+// A nice result of doing things this way is that you can (reasonably) efficiently
+// use a heap generator to implement an update journal (see `infuse.object` for an
+// example).
 
 infuse.extend(function (infuse) {
 infuse.type('heapmap', function (heapmap, methods) {
+
+// Enable pull-propagation updating
+infuse.mixins.pull(methods);
 
 // Heap state.
 // A heap stores the ordering function, which takes two elements and returns true
@@ -34,90 +38,280 @@ infuse.type('heapmap', function (heapmap, methods) {
 // the data you're storing must be a string.
 
 methods.initialize = function (above, generator, base) {
-  this.above_ = above ? infuse.fn.apply(this, arguments)
-                      : function (a, b) {return a < b};
-  this.xs_  = [];
-  this.map_ = {};
-
+  this.above_     = above ? infuse.fn.apply(this, arguments)
+                          : function (a, b) {return a <= b};
+  this.xs_        = [null];             // stores heap indexes (values)
+  this.keys_      = [null];             // stores entry keys
+  this.map_       = {};                 // maps keys to array indexes
   this.base_      = base;
   this.generator_ = generator;
+
+  infuse.assert(!!base === !!generator,
+    'infuse: base and generator must be specified together ('
+  + 'error constructing heapmap)');
 };
 
-methods.size = function () {return this.xs_.length};
+methods.size = function () {return this.pull().xs_.length - 1};
+
+// Derivatives.
+// Heap maps are interesting because they're mutable, which violates an assumption
+// that Infuse makes about viewable collections (i.e. things with derivatives).
+// Normally this would disqualify heapmaps from being Infuse collections at all,
+// but in this case we can work around it by changing the semantics of appending.
+// Rather than considering objects over time, we use heap ordering of objects.
+// This logic is explained further in the `generator` method.
+
+methods.derivative = function (generator) {
+  var f = infuse.fn.apply(this, arguments);
+  return infuse.heapmap(this.above_, f, this);
+};
 
 // Traversal.
-// Heapmaps behave like Infuse objects, but the traversal order depends on the
-// layout of the heap.
+// Heaps are traversed in heap-sorted order, which means that each generator
+// requires an extra O(log n) time to identify the next child. This is a
+// data-recursive process: the generator maintains a heap of child entries. Here's
+// what is going on:
 
-methods.each = function () {
-  var f = infuse.fn.apply(this, arguments);
-  for (var xs = this.xs_, i = 0, l = xs.length; i < l; ++i)
-    if (f(xs[i].k, i) === false) break;
-  return this;
+// |                       5               <- heap root; we start here
+//                       /   \
+//                     9       8
+//                   /  \     /
+//                 40    10  9
+
+// The user asks for a generator of the heap. We're required to present them with
+// a sorted list of keys, which we do by nondestructively traversing the heap
+// downwards:
+
+// |                     c(5)              <- emit 5
+//                     /      \
+//                   9          8          <- push children onto a heap
+
+// There are two sub-heaps after we emit 5, and in general because of the freedom
+// in the heap property there could be O(n) subheaps that we need to worry about.
+// We need the minimum of all subheaps. So, like any computer scientist should, we
+// allocate another heap to keep track of the subheaps:
+
+// |                    8                  <- the generator's heap; 8 is next
+//                     /
+//                    9
+
+// Then each generator fetch is just a matter of returning the minimum element of
+// its heap and pushing the heap's children.
+
+methods.generator = function () {
+  var self = this;
+
+  var limit      = null,                // updated by the generator
+      have_limit = false;
+
+  return function (emit) {
+    var xs   = self.xs_,
+        keys = self.keys_,
+        l    = xs.length;
+
+    if (l <= 1) return;                 // nothing to do (yet)
+
+    if (!have_limit)                    // get initial limit if necessary
+      limit      = xs[1],
+      have_limit = true;
+
+    // First step: check to see whether we have any nodes that satisfy the
+    // ceiling property. If not, then we're done.
+    var depth   = infuse.msb(l - 1),
+        initial = self.initial_ceiling_(limit, depth);
+
+    if (initial === null) return;       // nothing to do (no initial ceiling)
+
+    // We have to rebuild the next-child heap each time the generator is
+    // called. Otherwise we might not catch modifications made to the heap
+    // between generator calls. Like other generators, we disallow
+    // comodification; you must exit the generator by returning false before
+    // you modify the collection it's traversing.
+    var child_selector = infuse.heapmap(self.above_),
+        initial_v      = self.version_;
+
+    // Populate the child selector. We need to fully traverse the ceiling
+    // before we know which element to choose next (actually, this isn't quite
+    // true if we see something that equals the limit; but coding for
+    // referential equality is not really appropriate).
+    for (var i = self.initial_ceiling_(limit, depth), x;
+         i !== null;
+         limit = x, i = self.next_ceiling_(limit, i, depth))
+      child_selector.push(x = xs[i], i);
+
+    // Now start emitting stuff. Push the children of each element we pull
+    // until there are no children left.
+    while (child_selector.size()) {
+      var i = +child_selector.pop();
+      if (emit(limit = xs[i], keys[i]) === false) return;
+
+      var left = i << 1;
+      if (left < l) {
+        child_selector.push(xs[left], left);
+        var right = left + 1;
+        if (right < l) child_selector.push(xs[right], right);
+      }
+    }
+  };
+};
+
+// Ceiling generation.
+// A ceiling node is defined as an inclusive lower bound for a value. We refer to
+// them by indexes within `xs`. The goal is usually to generate all ceilings for a
+// given value bound.
+
+// This is used when re-entering a generator. We pass in the minimum (topmost)
+// value we're looking for and the index of the heap node we're starting with
+// (generally the `initial_ceiling_` for the first call), and `next_ceiling_`
+// returns the index of the next node we should look at. If there are no more
+// elements, `next_ceiling_` returns `null`.
+
+// The traversal order from this function is left-to-right within the tree
+// representation of a heap. This means that there is no ordering among ceilings.
+
+methods.next_ceiling_ = function (v, i, depth) {
+  if ((i & i + 1) === 0) return null;           // no more elements on level
+
+  var xs = this.xs_, l = xs.length;
+  if (i + 1 >= l) return null;                  // no more elements at all
+
+  // Are we moving from a left to a right child? If so, we know we can't go up
+  // since otherwise the left child wouldn't have been the topmost ceiling.
+  var search_upwards = i & 1;                   // right child before moving...
+  i++;                                          // now we're at a new node
+
+  // At this point we're at a node that may or may not be top-enough to be a
+  // valid ceiling. Handle the easy case first:
+  if (this.above_(v, xs[i]))
+    // The node is a valid ceiling, so up-search if necessary and return it.
+    return search_upwards ? this.topmost_ceiling_(v, i, depth)
+                          : i;
+
+  // This case is more interesting. The new node isn't a valid ceiling, so we
+  // need to do a leaf-search and then move upwards from the first leaf that
+  // works. If no leaf, then we return null.
+  for (i <<= depth - infuse.msb(i); i < l; ++i)
+    if (this.above_(v, xs[i]))
+      return this.topmost_ceiling_(v, i, depth);
+
+  // We hit the end without finding a suitable leaf, so we're done.
+  return null;
+};
+
+methods.topmost_ceiling_ = function (v, i, depth) {
+  // Binary search to identify the topmost node that satisfies the ceiling
+  // property. This requires O(log log n) ordering checks (which I'm assuming
+  // are arbitrarily expensive).
+  var xs = this.xs_;
+  for (var lower = 0, upper = depth; lower + 1 < upper;) {
+    var mid = lower + upper >>> 1;
+    if (this.above_(v, xs[i >>> mid])) lower = mid;
+    else                               upper = mid;
+  }
+  return i >>> lower + 1;
+};
+
+// Find the first leaf with the ceiling property, then find its topmost ceiling.
+// This is the only strategy we can use and still know that we have the leftmost
+// ceiling. If there is no initial ceiling, then `initial_ceiling_` returns
+// `null`.
+
+methods.initial_ceiling_ = function (v, depth) {
+  var xs = this.xs_;
+  for (var i = 1 << depth, limit = xs.length; i < limit; ++i)
+    if (this.above_(v, xs[i]))
+      return this.topmost_ceiling_(v, i, depth);
+  return null;
 };
 
 methods.get = function (k) {
   var map = this.map_;
   return Object.prototype.hasOwnProperty.call(map, k)
-    ? this.xs_[map[k]].v
-    : infuse.fn.apply(this, arguments)(this);
+    ? this.xs_[map[k]]
+    : infuse.fn.apply(this, arguments)(this, this.id());
 };
 
-methods.peek = function () {
-  var xs = this.xs_;
-  if (!xs.length) return void 0;
-  return xs[0].k;
+methods.remove = function (k) {
+  infuse.assert(!this.base_,
+    'infuse: attempted to remove() from a derivative heapmap (because '
+  + 'the heap map is a derivative, modifying it directly is illegal)');
+
+  var xs   = this.xs_,
+      map  = this.map_,
+      keys = this.keys_;
+  if (xs.length <= 1) return void 0;    // can't remove from an empty heap
+
+  if (xs.length > 2)
+    xs[1]   = xs.pop(),                 // standard last->first...
+    keys[1] = keys.pop();
+  else
+    xs.pop(), keys.pop();               // first is last, so just pop
+
+  if (xs.length > 1) {
+    map[keys[1]] = 1;                   // update position map
+    this.heapify_down_(1);              // then heapify down
+  }
+
+  delete map[k];
+  ++this.version_;                      // record the change
+  return this;
 };
 
 methods.pop = function () {
-  var xs  = this.xs_,
-      map = this.map_;
-  if (!xs.length) return void 0;      // can't pop an empty heap
-  var first = xs[0];
-  xs[0] = xs.pop();                   // standard last->first...
-  this.heapify_down_(0);              // then heapify down
-  map[xs[0].k] = 0;                   // update position map
-  delete map[first.k];
-  return first.k;
+  var ks = this.keys_;
+  if (ks.length <= 1) return void 0;
+  var k = ks[1];
+  this.remove(k);
+  return k;
 };
 
-methods.push = function (k, v) {
-  var xs  = this.xs_,
-      map = this.map_;
+methods.peek = function () {
+  return this.keys_[1];
+};
+
+methods.push_ = function (v, k) {
+  var xs   = this.xs_,
+      keys = this.keys_,
+      map  = this.map_;
+
   if (Object.prototype.hasOwnProperty.call(map, k)) {
     // Update, not insert. Change the value, then heapify up or down
     // depending on the value ordering.
-    var i          = map[k],
-        x          = xs[i],
-        original_v = x.v;
-    x.v = v;
-    return this.above_(v, original_v)
-      ? this.heapify_up_(i)
-      : this.heapify_down_(i);
+    var i = map[k],
+        x = xs[i];
+    xs[i] = v;
+    return this.above_(v, x) ? this.heapify_up_(i)
+                             : this.heapify_down_(i);
   } else {
     // Insert. This is the easy case: build a new container, add to end of
     // elements, and heapify up.
     var l = xs.length;
-    xs.push({k: k, v: v});
-    map[k] = l;
-    return this.heapify_up_(l);
+    xs.push(v);
+    keys.push(k);
+    return this.heapify_up_(map[k] = l);
   }
 };
 
 methods.swap_ = function (i, j) {
-  var xs  = this.xs_,
-      map = this.map_,
-      tmp = xs[i];
-  xs[i] = xs[j];                      // swap the elements
+  var xs   = this.xs_,
+      keys = this.keys_,
+      map  = this.map_,
+      tmp  = xs[i];
+  xs[i] = xs[j];                        // swap the elements
   xs[j] = tmp;
-  map[xs[i].k] = i;                   // update position map
-  map[xs[j].k] = j;
+  tmp = keys[i];                        // ... and the keys
+  keys[i] = keys[j];
+  keys[j] = tmp;
+  map[keys[i]] = i;                     // update position map
+  map[keys[j]] = j;
   return this;
 };
 
 methods.heapify_down_ = function (i) {
-  var xs = this.xs_;
-  if (i << 1 >= xs.length)
+  var xs = this.xs_,
+      l  = xs.length;
+
+  if (i << 1 >= l)
     // Can't heapify down beyond the bottom of the heap
     return this;
 
@@ -125,24 +319,23 @@ methods.heapify_down_ = function (i) {
   // greater than both.
   var left  = i << 1,
       right = left | 1,
-      xi    = xs[i].v,
-      xl    = xs[left].v,
+      xi    = xs[i],
+      xl    = xs[left],
       xr    = xs[right];      // this might not exist
 
-  if (this.above_(xi, xl) && (!xr || this.above_(xi, xr.v)))
+  if (this.above_(xi, xl) && (right >= l || this.above_(xi, xr)))
     // We're done; neither child is greater.
     return this;
 
   // Swap with the greater of the two children.
-  var swap_index = !xr || this.above_(xl, xr.v) ? left : right;
+  var swap_index = right >= l || this.above_(xl, xr) ? left : right;
   return this.swap_(i, swap_index).heapify_down_(swap_index);
 };
 
 methods.heapify_up_ = function (i) {
   var xs = this.xs_,
       up = i >>> 1;
-
-  return i && this.above_(xs[i].v, xs[up].v)
+  return up && this.above_(xs[i], xs[up])
     ? this.swap_(i, up).heapify_up_(up)
     : this;
 };

@@ -22,7 +22,13 @@ expressions. You can also add your own types by appending elements to
 `infuse.fn.alternatives`.
 
 ```js
-infuse.fn(/f(..)/)('foo')               -> 'oo'
+infuse.fn(/f(..)/)('foo')[0]            -> 'oo'
+infuse.fn(/f(..)/)('bar')               -> null
+infuse.fn(/f(.)(.)/)('foo').length      -> 2
+infuse.fn(/f(.)(.)/)('foo')[0]          -> 'o'
+infuse.fn(/f(.)(.)/)('foo')[1]          -> 'o'
+infuse.fn(/foo*/)('fooooo')             -> 'fooooo'
+infuse.fn(/foo*/)('baaaar')             -> null
 ```
 
 And naturally, functions go straight through without any modification.
