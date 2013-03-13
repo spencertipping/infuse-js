@@ -1,7 +1,12 @@
 Heap map objects.
-Heapmaps are basically priority queues. They aren't normal Infuse objects
-(generally they're just used internally for LRU caches and such), and you can't
-make derivatives out of them.
+See also the [Infuse heapmap source](heapmap-src.md).
+
+Heap maps give you a way to implement priority queues and similar data
+structures. They are full Infuse objects, which means you can create
+lazily-updated derivatives and they support all of the usual methods (e.g.
+`map`, etc). However, a heap map derivative doesn't behave the same way that
+most derivatives do. See the [heapmap source](heapmap-src.md) for details about
+why it works this way.
 
 var h = infuse.heapmap();       // uses minheap of numbers by default
 h.push(0, 'foo')                -> h
