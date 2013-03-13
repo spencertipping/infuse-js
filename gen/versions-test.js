@@ -30,7 +30,6 @@ var ys = xs.derivative(function (emit) {
   });
 });
 
-infuse.assert_equal((ys.version()                            ), (0));
 infuse.assert_equal((ys.size()                               ), (3));
 infuse.assert_equal((ys.version()                            ), (4));
 infuse.assert_equal((ys.get().join(',')                      ), ('1,2,3'));

@@ -25,17 +25,19 @@ converting an existing object to a multiobject requires linear time and space.
 methods.initialize = function (o_or_f, base) {
   this.o_       = {};
   this.size_    = 0;
-  this.version_ = 0;
   this.journal_ = infuse.heapmap();
 ```
 
 ```js
   if (o_or_f instanceof Function)
+    this.version_   = -1,
     this.generator_ = o_or_f,
     this.base_      = infuse.assert(base,
       'infuse: attempted to create a derivative multiobject without '
-    + 'specifying a base');
+    + 'specifying a base'),
+    this.pull();
   else {
+    this.version_ = 0;
     this.generator_ = null,
     this.base_      = null;
     if (o_or_f)
@@ -122,8 +124,7 @@ methods.generator = function () {
 
 # Retrieval
 
-The `get` method returns an array of values for any existing key. It returns
-`undefined` for nonexistent keys.
+The `get` method returns an array of values for any existing key.
 
 ```js
 methods.get = function (k) {
@@ -144,8 +145,8 @@ methods.get = function (k) {
 
 ```js
   // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+  if (k instanceof Array) {
+    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
     return r;
   }
 ```

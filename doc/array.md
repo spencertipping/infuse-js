@@ -45,7 +45,6 @@ Arrays can be transformed eagerly and lazily. For example:
 
 ```js
 var ys = xs.map('_ + 1');
-ys.version()                    -> 0
 ys.size()                       -> 3
 ys.get().join(',')              -> '2,3,4'
 ys.version() > 0                -> true
@@ -62,17 +61,27 @@ ys.get(-1)                      -> 6
 ys.size()                       -> 4
 ```
 
+We can construct lazily-updated derivatives of the mapped output as well:
+
+```js
+var ys2 = ys.map('_ * 2');
+ys2.size()                      -> 4
+ys2.get().join(',')             -> '4,6,8,12'
+xs.push(6)                      -> xs
+ys2.get().join(',')             -> '4,6,8,12,14'
+```
+
 This includes things like filters and flatmaps, but with the caveat that
 already-realized elements won't be recomputed:
 
 ```js
 var zs = xs.flatmap('[_ + 1, _ + 2]');
-zs.size()                       -> 8
-zs.get().join(',')              -> '2,3,3,4,4,5,6,7'
+zs.size()                       -> 10
+zs.get().join(',')              -> '2,3,3,4,4,5,6,7,7,8'
 ```
 
 ```js
 xs.push('foo')                  -> xs
-zs.get().join(',')              -> '2,3,3,4,4,5,6,7,foo1,foo2'
+zs.get().join(',')              -> '2,3,3,4,4,5,6,7,7,8,foo1,foo2'
 
 ```

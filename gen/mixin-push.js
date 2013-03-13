@@ -17,7 +17,7 @@ infuse.mixin('push', function (methods) {
 // (if not, you should define a different version strategy).
 
 methods.pull    = function () {return this};
-methods.version = function () {return this.size()};
+methods.version = function () {return this.size() + 1};
 
 // Detachment.
 // Push objects are forward-linked, so we need to inform the parent that the

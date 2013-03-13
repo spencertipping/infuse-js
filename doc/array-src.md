@@ -43,8 +43,9 @@ methods.initialize = function (xs_or_f, base) {
   if (xs_or_f instanceof Function)
     this.xs_        = [],
     this.base_      = base,
-    this.generator_ = infuse.fn(xs_or_f),
-    this.version_   = 0;
+    this.generator_ = xs_or_f,
+    this.version_   = -1,
+    this.pull();
   else
     this.xs_        = xs_or_f instanceof Array
                       ? xs_or_f
@@ -143,7 +144,7 @@ methods.get = function (n, fn) {
 ```js
   // get([x1, x2, x3, ...]) = [get(x1), get(x2), ...]
   if (n instanceof Array) {
-    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+    for (var r = [], i = 0, l = n.length; i < l; ++i) r.push(this.get(n[i]));
     return r;
   }
 ```

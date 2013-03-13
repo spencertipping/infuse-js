@@ -38,7 +38,6 @@ var ys = xs.derivative(function (emit) {
 ```
 
 ```js
-ys.version()                            -> 0
 ys.size()                               -> 3
 ys.version()                            -> 4
 ys.get().join(',')                      -> '1,2,3'

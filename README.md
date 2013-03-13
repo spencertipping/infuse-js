@@ -1,6 +1,6 @@
 # Infuse.js
 
-**Note: this library doesn't work yet.**
+**Note: This library is not yet fully tested or feature-complete.**
 
 Infuse.js provides a uniform API for accessing Javascript-native objects and
 arrays, as well as defining futures, signals, inversions, invariants, and other
@@ -79,6 +79,7 @@ function:
 
 - [arrays](doc/array.md)
 - [objects](doc/object.md)
+- [multiobjects](doc/multiobject.md)
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
 - [fn](doc/fn.md)

@@ -141,7 +141,7 @@ infuse.fn.binding_prefix = function (bindings) {
 infuse.fn.body_arity = function (body_string) {
   // Find the underscore-variable with the largest subscript. We support up to
   // _9, where _1 (also called _) is the first argument.
-  for (var formals = body_string.match(/_\d?/g),
+  for (var formals = body_string.match(/_\d?/g) || [],
            i       = 0,
            l       = formals.length,
            max     = +!!formals.length;

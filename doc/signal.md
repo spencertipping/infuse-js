@@ -11,6 +11,14 @@ var errors = 0;
 ```
 
 ```js
+var grouped = f.group('_2');    // group by key, or callback type (see below)
+```
+
+```js
+grouped.size()                  -> 0
+```
+
+```js
 f.size()                        -> 0
 f.on('value', function (x) {++called});
 f.on('error', function (x) {++errors});
@@ -44,6 +52,16 @@ var ohnoes = f.trigger('error');
 errors                          -> 0
 ohnoes('something bad happened');
 errors                          -> 1
+```
+
+Earlier we called `f.group`, constructing a derivative multiobject. Even though
+futures update asynchronously, the grouped index is kept up-to-date (this time
+using push-updating instead of pull-updating):
+
+```js
+grouped.get('value').join(',')  -> '5,5'
+grouped.get('error').join(',')  -> 'something bad happened'
+grouped.size()                  -> 3
 ```
 
 One cool thing we can do with signals is reduce them. A future takes on a
@@ -111,5 +129,12 @@ g.value()                       -> 10
 g.push(15, 'value');
 once_called                     -> 1
 g.value()                       -> 15
+```
+
+We didn't detach the grouped multiobject, so we still have it:
+
+```js
+grouped.size()                  -> 7
+grouped.get('value').join(',')  -> '5,5,1,2,3,4'
 
 ```

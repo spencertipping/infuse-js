@@ -1,4 +1,7 @@
 Incremental update generators.
+See also the source for the [Infuse pull-propagation mixin](mixin-pull-src.md)
+and the [push-propagation mixin](mixin-push-src.md).
+
 Every object type defines a `generator` method that gives you a single-pass,
 generally constant-memory iterator for a data structure. Generators are used by
 `map`, `filter`, etc, to build and maintain derivative data structures. For
@@ -37,3 +40,9 @@ g(function (x, i) {
   x                             -> 6
   i                             -> 5
 });
+
+Big warning: If you're using a push-propagated object like a future or a
+signal, then you need to pass a second argument into the generator. This second
+argument is the Infuse ID of the object that will be receiving updates from the
+generator. If you aren't updating an Infuse object, you can just use
+`infuse.gen_id()` to create an anonymous ID.

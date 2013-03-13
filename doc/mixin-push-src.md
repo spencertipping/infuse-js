@@ -22,7 +22,7 @@ object's version is just its size; presumably this is monotonically increasing
 
 ```js
 methods.pull    = function () {return this};
-methods.version = function () {return this.size()};
+methods.version = function () {return this.size() + 1};
 ```
 
 # Detachment

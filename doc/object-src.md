@@ -37,8 +37,9 @@ methods.initialize = function (o_or_f, base) {
                         'infuse: attempted to construct a derivative '
                       + 'object without specifying a base'),
     this.generator_ = o_or_f,
-    this.version_   = 0,
-    this.journal_   = infuse.heapmap();
+    this.version_   = -1,
+    this.journal_   = infuse.heapmap(),
+    this.pull();
   else
     this.o_         = o_or_f,
     this.base_      = null,
@@ -158,8 +159,8 @@ methods.get = function (k) {
 
 ```js
   // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+  if (k instanceof Array) {
+    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
     return r;
   }
 ```

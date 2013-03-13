@@ -195,7 +195,7 @@ infuse.mixin('push', function (methods) {
 // (if not, you should define a different version strategy).
 
 methods.pull    = function () {return this};
-methods.version = function () {return this.size()};
+methods.version = function () {return this.size() + 1};
 
 // Detachment.
 // Push objects are forward-linked, so we need to inform the parent that the
@@ -860,7 +860,7 @@ infuse.fn.binding_prefix = function (bindings) {
 infuse.fn.body_arity = function (body_string) {
   // Find the underscore-variable with the largest subscript. We support up to
   // _9, where _1 (also called _) is the first argument.
-  for (var formals = body_string.match(/_\d?/g),
+  for (var formals = body_string.match(/_\d?/g) || [],
            i       = 0,
            l       = formals.length,
            max     = +!!formals.length;
@@ -939,8 +939,9 @@ methods.initialize = function (xs_or_f, base) {
   if (xs_or_f instanceof Function)
     this.xs_        = [],
     this.base_      = base,
-    this.generator_ = infuse.fn(xs_or_f),
-    this.version_   = 0;
+    this.generator_ = xs_or_f,
+    this.version_   = -1,
+    this.pull();
   else
     this.xs_        = xs_or_f instanceof Array
                       ? xs_or_f
@@ -1020,7 +1021,7 @@ methods.get = function (n, fn) {
 
   // get([x1, x2, x3, ...]) = [get(x1), get(x2), ...]
   if (n instanceof Array) {
-    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+    for (var r = [], i = 0, l = n.length; i < l; ++i) r.push(this.get(n[i]));
     return r;
   }
 
@@ -1109,8 +1110,9 @@ methods.initialize = function (o_or_f, base) {
                         'infuse: attempted to construct a derivative '
                       + 'object without specifying a base'),
     this.generator_ = o_or_f,
-    this.version_   = 0,
-    this.journal_   = infuse.heapmap();
+    this.version_   = -1,
+    this.journal_   = infuse.heapmap(),
+    this.pull();
   else
     this.o_         = o_or_f,
     this.base_      = null,
@@ -1207,8 +1209,8 @@ methods.get = function (k) {
     return o[k];
 
   // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+  if (k instanceof Array) {
+    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
     return r;
   }
 
@@ -1252,15 +1254,17 @@ infuse.mixins.pull(methods);
 methods.initialize = function (o_or_f, base) {
   this.o_       = {};
   this.size_    = 0;
-  this.version_ = 0;
   this.journal_ = infuse.heapmap();
 
   if (o_or_f instanceof Function)
+    this.version_   = -1,
     this.generator_ = o_or_f,
     this.base_      = infuse.assert(base,
       'infuse: attempted to create a derivative multiobject without '
-    + 'specifying a base');
+    + 'specifying a base'),
+    this.pull();
   else {
+    this.version_ = 0;
     this.generator_ = null,
     this.base_      = null;
     if (o_or_f)
@@ -1331,8 +1335,7 @@ methods.generator = function () {
 };
 
 // Retrieval.
-// The `get` method returns an array of values for any existing key. It returns
-// `undefined` for nonexistent keys.
+// The `get` method returns an array of values for any existing key.
 
 methods.get = function (k) {
   var o = this.pull().o_;
@@ -1346,8 +1349,8 @@ methods.get = function (k) {
     return o[k];
 
   // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = xs.length; i < l; ++i) r.push(this.get(xs[i]));
+  if (k instanceof Array) {
+    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
     return r;
   }
 
