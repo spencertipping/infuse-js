@@ -1744,17 +1744,13 @@ methods.mapfilter = function (fn) {
 // As a result, we implement two forms of `reduce`. The eager one, `reduce`,
 // returns a final answer that is not wrapped in an Infuse object, while the lazy
 // one, `reductions`, returns a result whose value may be updated as the
-// underlying sequence gains values.
+// underlying sequence gains values. It's an error to call `reduce` on a
+// push-propagated Infuse object like a future or a signal.
 
-// A relevant example is the difference when dealing with futures. Suppose you
-// have a future `f` that will end up delivering `5`. If you call
-// `f.reduce(0, '_1 + _2')` and `f` is not yet delivered, you'll get `0` back as
-// the future is said to have no elements.
-
-// If, on the other hand, you invoke `f.reductions(0, '_1 + _2')`, you'll get a
-// future that is initially undelivered and then becomes `5` when the first future
-// is delivered. (Reducing a signal is a little more interesting, since signal
-// reductions continue to update and accumulate.)
+// However, you can invoke `f.reductions(0, '_1 + _2')` to get a future that is
+// initially undelivered and then is delivered with the receiver. (Reducing a
+// signal is a little more interesting, since signal reductions continue to update
+// and accumulate.)
 
 // More intuitively, a signal is like a lazy sequence whose index is time.
 // Obviously you can't faithfully reduce it in a strict way, since it doesn't have
