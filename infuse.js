@@ -1747,9 +1747,9 @@ methods.mapfilter = function (fn) {
 // underlying sequence gains values.
 
 // A relevant example is the difference when dealing with futures. Suppose you
-// have a future `f` that will end up delivering `5`. If you call `f.reduce(0, '_1
-// + _2')` and `f` is not yet delivered, you'll get `0` back as the future is said
-// to have no elements.
+// have a future `f` that will end up delivering `5`. If you call
+// `f.reduce(0, '_1 + _2')` and `f` is not yet delivered, you'll get `0` back as
+// the future is said to have no elements.
 
 // If, on the other hand, you invoke `f.reductions(0, '_1 + _2')`, you'll get a
 // future that is initially undelivered and then becomes `5` when the first future
