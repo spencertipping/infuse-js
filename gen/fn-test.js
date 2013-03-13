@@ -1,4 +1,6 @@
 // Infuse function promotion.
+// See also the [Infuse fn source](fn-src.md).
+
 // Infuse promotes functions using a multimethod called `infuse.fn`. This method
 // maintains a bounded LRU cache of anything it compiles to minimize the
 // performance impact of using functions inside loops. Here are some function

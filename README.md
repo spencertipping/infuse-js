@@ -84,11 +84,18 @@ function:
 - [signals](doc/signal.md)
 - [fn](doc/fn.md)
 
+Also useful:
+
+- [methods supported by all types](doc/methods-src.md)
+- [global utility functions](doc/util-src.md)
+
 You can also see the low-level stuff:
 
 - [generators](doc/generators.md)
 - [versions](doc/versions.md)
 - [heapmap](doc/heapmap.md)
+
+- [cache source](doc/cache-src.md)
 
 ## Building Infuse
 

@@ -3,19 +3,8 @@
 
 // Introduction.
 // This module defines most of the methods that are common to all Infuse types.
-// Each of the methods defined here is based on implementations of a few required
-// generic methods:
-
-// | obj.each(f)           f(x1), f(x2), ...
-//   obj.generator()
-//   obj.size()            must be a finite nonnegative integer
-//   obj.get(n)            0 <= n < size
-//   obj.force(n)          0 <= n
-//   obj.derivative(f)     f is a generator function
-//   obj.push(v, k)
-
-// Forcing may throw an error for certain types, limiting the set of operations
-// that they support.
+// Each of the methods defined here is based on implementations of `derivative`
+// and `generator`.
 
 infuse.extend(function (infuse, methods) {
 
@@ -51,7 +40,7 @@ methods.values = function () {
 // Traversal.
 // The generator order can be used to define `each`; we just throw the generator
 // away at the end. There is no ID associated with an `each` operation, so it will
-// do nothing for asynchronous objects. (If you want to handle asynchronous
+// throw an error for asynchronous objects. (If you want to handle asynchronous
 // operations, you should use `on`.)
 
 methods.each = function (fn) {
