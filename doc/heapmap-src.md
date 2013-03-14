@@ -46,7 +46,7 @@ the data you're storing must be a string.
 ```js
 methods.initialize = function (above, generator, base) {
   this.above_     = above ? infuse.fn.apply(this, arguments)
-                          : function (a, b) {return a <= b};
+                          : function (a, b) {return a < b};
   this.xs_        = [null];             // stores heap indexes (values)
   this.keys_      = [null];             // stores entry keys
   this.map_       = {};                 // maps keys to array indexes
@@ -125,7 +125,7 @@ methods.generator = function () {
 ```
 
 ```js
-  return function (emit) {
+  return function (emit, id) {
     var xs   = self.xs_,
         keys = self.keys_,
         l    = xs.length;
@@ -136,16 +136,11 @@ methods.generator = function () {
 ```
 
 ```js
-    if (!have_limit)                    // get initial limit if necessary
-      limit      = xs[1],
-      have_limit = true;
-```
-
-```js
     // First step: check to see whether we have any nodes that satisfy the
     // ceiling property. If not, then we're done.
     var depth   = infuse.msb(l - 1),
-        initial = self.initial_ceiling_(limit, depth);
+        initial = have_limit ? self.initial_ceiling_(limit, depth)
+                             : 1;
 ```
 
 ```js
@@ -167,9 +162,9 @@ methods.generator = function () {
     // before we know which element to choose next (actually, this isn't quite
     // true if we see something that equals the limit; but coding for
     // referential equality is not really appropriate).
-    for (var i = self.initial_ceiling_(limit, depth), x;
+    for (var i = initial, x;
          i !== null;
-         limit = x, i = self.next_ceiling_(limit, i, depth))
+         i = self.next_ceiling_(limit, i, depth))
       child_selector.push(x = xs[i], i);
 ```
 
@@ -177,7 +172,13 @@ methods.generator = function () {
     // Now start emitting stuff. Push the children of each element we pull
     // until there are no children left.
     while (child_selector.size()) {
-      var i = +child_selector.pop();
+      var i = +child_selector.pop(),
+          x = xs[i];
+```
+
+```js
+      limit      = x;
+      have_limit = true;
       if (emit(limit = xs[i], keys[i]) === false) return;
 ```
 
@@ -210,19 +211,19 @@ representation of a heap. This means that there is no ordering among ceilings.
 
 ```js
 methods.next_ceiling_ = function (v, i, depth) {
-  if ((i & i + 1) === 0) return null;           // no more elements on level
+  if (!(i & i + 1)) return null;                // no more elements on level
 ```
 
 ```js
   var xs = this.xs_, l = xs.length;
-  if (i + 1 >= l) return null;                  // no more elements at all
+  if (i + 1 >= l) i >>>= 1;                     // jagged leaves; move up
 ```
 
 ```js
   // Are we moving from a left to a right child? If so, we know we can't go up
   // since otherwise the left child wouldn't have been the topmost ceiling.
-  var search_upwards = i & 1;                   // right child before moving...
-  i++;                                          // now we're at a new node
+  var search_upwards = i & 1;                   // right child before moving?
+  i++;                                          // if so, now we're at a left
 ```
 
 ```js
@@ -238,7 +239,19 @@ methods.next_ceiling_ = function (v, i, depth) {
   // This case is more interesting. The new node isn't a valid ceiling, so we
   // need to do a leaf-search and then move upwards from the first leaf that
   // works. If no leaf, then we return null.
-  for (i <<= depth - infuse.msb(i); i < l; ++i)
+  //
+  // This loop scans right until either we hit the end of the level, or we hit
+  // the end of the array. In the latter case we need to move up one level and
+  // continue scanning there.
+  for (i <<= depth - infuse.msb(i); i & i - 1 && i < l; ++i)
+    if (this.above_(v, xs[i]))
+      return this.topmost_ceiling_(v, i, depth);
+```
+
+```js
+  // This loop handles the level above. If we had hit the end of the last
+  // level, this loop will do nothing.
+  for (i >>>= 1, l = 1 << depth; i < l; ++i)
     if (this.above_(v, xs[i]))
       return this.topmost_ceiling_(v, i, depth);
 ```
@@ -260,7 +273,7 @@ methods.topmost_ceiling_ = function (v, i, depth) {
     if (this.above_(v, xs[i >>> mid])) lower = mid;
     else                               upper = mid;
   }
-  return i >>> lower + 1;
+  return i >>> lower;
 };
 ```
 
@@ -272,9 +285,24 @@ ceiling. If there is no initial ceiling, then `initial_ceiling_` returns
 ```js
 methods.initial_ceiling_ = function (v, depth) {
   var xs = this.xs_;
-  for (var i = 1 << depth, limit = xs.length; i < limit; ++i)
+```
+
+```js
+  // Start on the leaf level...
+  for (var i = 1 << depth, second_limit = i, limit = xs.length; i < limit; ++i)
     if (this.above_(v, xs[i]))
       return this.topmost_ceiling_(v, i, depth);
+```
+
+```js
+  // ... and continue one level above that if we don't find anything. (We do
+  // this because the bottom layer of leaves might not be complete.)
+  for (i >>>= 1; i < second_limit; ++i)
+    if (this.above_(v, xs[i]))
+      return this.topmost_ceiling_(v, i, depth);
+```
+
+```js
   return null;
 };
 ```

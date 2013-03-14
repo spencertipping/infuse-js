@@ -6,8 +6,9 @@ These are instantiated like arrays and support a similar API:
 
 ```js
 var o = infuse({foo: 1, bar: 2, bif: 3});
+var keys = o.keys();
 o.size()                        -> 3
-o.keys().size()                 -> 3
+keys.size()                     -> 3
 o.get('foo')                    -> 1
 ```
 
@@ -31,9 +32,20 @@ mapped.get('baz')               -> 5
 ```
 
 ```js
-o.push(5, 'five')               -> o
-o.push(6, 'six')                -> o
+keys.size()                     -> 4
+keys.get().sort().join(',')     -> 'bar,baz,bif,foo'
+```
+
+```js
+o.push(5, 'five') .push(6, 'six');
+o.push(7, 'seven').push(8, 'eight');
+```
+
+```js
+keys.get().sort().join(',')     -> 'bar,baz,bif,eight,five,foo,seven,six'
 mapped.get('five')              -> 6
 mapped.get('six')               -> 7
+mapped.get('seven')             -> 8
+mapped.get('eight')             -> 9
 
 ```
