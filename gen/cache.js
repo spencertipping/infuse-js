@@ -71,11 +71,10 @@ infuse.cache = function (eviction_strategy) {
 
       // First, determine whether we have the item. If we do, just update the
       // access time and take no further action.
-      var hit = cache[key];
-      if (hit) {
+      if (Object.prototype.hasOwnProperty.call(cache, key)) {
         ++f.hits;
         state.priority_queue.push(++state.access_counter, key);
-        return hit;
+        return cache[key];
       }
 
       // Cache miss, so go ahead and generate a value and insert the result.
