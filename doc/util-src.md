@@ -9,6 +9,10 @@ This module defines global functions on the `infuse` global.
 infuse.extend(function (infuse) {
 ```
 
+# Internal functions
+
+These are generally just used by Infuse.
+
 ```js
 var id = 0;
 infuse.gen_id = function () {return 'infuse-' + ++id};

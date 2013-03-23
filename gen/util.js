@@ -6,6 +6,9 @@
 
 infuse.extend(function (infuse) {
 
+// Internal functions.
+// These are generally just used by Infuse.
+
 var id = 0;
 infuse.gen_id = function () {return 'infuse-' + ++id};
 

@@ -180,6 +180,19 @@ methods.group = function (fn) {
 };
 ```
 
+# Tail
+
+Not like the UNIX `tail` command: instead, the tail of an Infuse object always
+contains the N most recent elements emitted for that object. The keys are
+modified to be the indexes at which the elements are emitted.
+
+```js
+methods.tail = function (n) {
+  var g = this.generator();
+  return infuse.tail(n, g, this);
+};
+```
+
 ```js
 });
 

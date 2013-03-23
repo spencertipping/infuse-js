@@ -36,12 +36,18 @@ infuse.assert_equal((ys.size()                       ), (3));
 infuse.assert_equal((ys.get().join(',')              ), ('2,3,4'));
 infuse.assert_equal((ys.version() > 0                ), (true));
 
+var t = xs.tail(2);
+infuse.assert_equal((t.size()                        ), (2));
+infuse.assert_equal((t.get().join(',')               ), ('2,3'));
+
 // As mentioned in the readme, transformations are stored so that incremental
 // updates to the original array are reflected in any derivative arrays.
 
 infuse.assert_equal((xs.push(5)                      ), (xs));
 infuse.assert_equal((xs.size()                       ), (4));
 infuse.assert_equal((xs.get(-1)                      ), (5));
+infuse.assert_equal((t.get(-1)                       ), (5));
+infuse.assert_equal((t.size()                        ), (2));
 infuse.assert_equal((ys.get(-1)                      ), (6));
 infuse.assert_equal((ys.size()                       ), (4));
 
