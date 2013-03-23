@@ -57,9 +57,9 @@ methods.value = function () {return this.value_};
 // reasons I'll explain in more detail later. At that point we don't need to do
 // anything else until we get a value through `push`.
 
-methods.derivative = function (generator) {
+methods.derivative = function (generator, version_base) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.future(f, this);
+  return infuse.future(f, version_base || this);
 };
 
 methods.generator = function () {
@@ -96,14 +96,8 @@ methods.push = function (v, k) {
 // decided, and no existence at all before they're decided.
 
 methods.get = function (k) {
-  // get() -> {} if undecided, {k: v} if decided
-  if (k === void 0)
-    if (this.listeners_) return {};
-    else {
-      var result = {};
-      result[this.key_] = this.value_;
-      return result;
-    }
+  // get() -> v if decided, null if undecided
+  if (k === void 0) return this.value_;
 
   // get(k) -> v if decided and k === key, otherwise null
   if (k === this.key_) return this.value_;

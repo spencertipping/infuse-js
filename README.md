@@ -72,7 +72,8 @@ represent, but with a few major exceptions:
 3. Derivative collections (e.g. `map` results) inherit changes from their
    source. Multilevel inheritance is fully supported, and all synchronous
    collections (i.e. not futures or signals) are only singly-linked from child
-   to parent.
+   to parent. As a result, updating a synchronous base collection is always
+   O(1) in the number of derivatives.
 
 For more details, check out the narrative tests for each data type and utility
 function:
@@ -88,6 +89,7 @@ Also useful:
 
 - [methods supported by all types](doc/methods-src.md)
 - [global utility functions](doc/util-src.md)
+- [sorting](doc/sorting.md)
 
 You can also see the low-level stuff:
 
@@ -95,6 +97,7 @@ You can also see the low-level stuff:
 - [versions](doc/versions.md)
 - [heapmap](doc/heapmap.md)
 
+- [funnel source](doc/funnel-src.md)
 - [cache source](doc/cache-src.md)
 
 ## Building Infuse

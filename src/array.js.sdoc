@@ -67,9 +67,9 @@ Laziness requires that we pass on certain metadata about the base whenever we
 construct any derivative. To do this, we have the derivative link to its base
 so that any new elements on the base can be transformed accordingly.
 
-methods.derivative = function (generator) {
+methods.derivative = function (generator, version_base) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.array(f, this);
+  return infuse.array(f, version_base || this);
 };
 
 Traversal.

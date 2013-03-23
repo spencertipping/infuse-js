@@ -17,7 +17,8 @@ infuse.mixins.pull(methods);
 // objects, but that's generally where they come from.
 
 methods.initialize = function (size, generator, base) {
-  this.xs_        = new Array(size),
+  this.xs_        = [],
+  this.size_      = size,
   this.zero_      = 0,
   this.base_      = base,
   this.generator_ = generator,
@@ -25,11 +26,11 @@ methods.initialize = function (size, generator, base) {
   this.pull();
 };
 
-methods.size = function () {return this.xs_.length};
+methods.size = function () {return this.pull().xs_.length};
 
 methods.push_ = function (v, k) {
   var z = this.zero_++;
-  this.xs_[z % this.xs_.length] = v;
+  this.xs_[z % this.size_] = v;
   return this;
 };
 
@@ -38,7 +39,7 @@ methods.push_ = function (v, k) {
 
 methods.derivative = function (generator) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.tail(this.xs_.length, f, this);
+  return infuse.tail(this.size_, f, this);
 };
 
 // Traversal.

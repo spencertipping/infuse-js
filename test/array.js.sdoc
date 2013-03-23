@@ -68,3 +68,19 @@ zs.get().join(',')              -> '2,3,3,4,4,5,6,7,7,8'
 
 xs.push('foo')                  -> xs
 zs.get().join(',')              -> '2,3,3,4,4,5,6,7,7,8,foo1,foo2'
+
+Infuse objects can be combined with each other to collect changes from multiple
+bases. For example:
+
+var all = xs.plus(zs);
+all.size()                      -> xs.size() + zs.size()
+all.get(0)                      -> xs.get(0)
+all.get(-1)                     -> zs.get(-1)
+all.get().join(',')             -> xs.get().join(',') + ',' + zs.get().join(',')
+
+And like any other object, `all` will stay up to date with the object it's
+based on:
+
+var old_size = all.size();
+xs.push(4);
+all.size() > old_size           -> true

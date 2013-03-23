@@ -74,9 +74,9 @@ methods.push_ = function (v, k) {
 // can then search this object and apply updates. This makes searching O(n) when
 // the object has been updated, O(1) otherwise.
 
-methods.derivative = function (generator) {
+methods.derivative = function (generator, version_base) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.object(f, this);
+  return infuse.object(f, version_base || this);
 };
 
 methods.journal = function () {

@@ -43,6 +43,7 @@ methods.initialize = function (above, generator, base) {
   this.xs_        = [null];             // stores heap indexes (values)
   this.keys_      = [null];             // stores entry keys
   this.map_       = {};                 // maps keys to array indexes
+  this.version_   = -1;
   this.base_      = base;
   this.generator_ = generator;
 
@@ -61,9 +62,9 @@ but in this case we can work around it by changing the semantics of appending.
 Rather than considering objects over time, we use heap ordering of objects.
 This logic is explained further in the `generator` method.
 
-methods.derivative = function (generator) {
+methods.derivative = function (generator, version_base) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.heapmap(this.above_, f, this);
+  return infuse.heapmap(this.above_, f, version_base || this);
 };
 
 Traversal.
@@ -105,39 +106,42 @@ methods.generator = function () {
       have_limit = false;
 
   return function (emit, id) {
-    var xs   = self.xs_,
+    var xs   = self.pull().xs_,
         keys = self.keys_,
         l    = xs.length;
 
     if (l <= 1) return;                 // nothing to do (yet)
 
-    // First step: check to see whether we have any nodes that satisfy the
-    // ceiling property. If not, then we're done.
+First step: check to see whether we have any nodes that satisfy the ceiling
+property. If not, then we're done.
+
     var depth   = infuse.msb(l - 1),
         initial = have_limit ? self.initial_ceiling_(limit, depth)
                              : 1;
 
     if (initial === null) return;       // nothing to do (no initial ceiling)
 
-    // We have to rebuild the next-child heap each time the generator is
-    // called. Otherwise we might not catch modifications made to the heap
-    // between generator calls. Like other generators, we disallow
-    // comodification; you must exit the generator by returning false before
-    // you modify the collection it's traversing.
+We have to rebuild the next-child heap each time the generator is called.
+Otherwise we might not catch modifications made to the heap between generator
+calls. Like other generators, we disallow comodification; you must exit the
+generator by returning false before you modify the collection it's traversing.
+
     var child_selector = infuse.heapmap(self.above_),
         initial_v      = self.version_;
 
-    // Populate the child selector. We need to fully traverse the ceiling
-    // before we know which element to choose next (actually, this isn't quite
-    // true if we see something that equals the limit; but coding for
-    // referential equality is not really appropriate).
+Populate the child selector. We need to fully traverse the ceiling before we
+know which element to choose next (actually, this isn't quite true if we see
+something that equals the limit; but coding for referential equality is not
+really appropriate).
+
     for (var i = initial, x;
          i !== null;
          i = self.next_ceiling_(limit, i, depth))
       child_selector.push(x = xs[i], i);
 
-    // Now start emitting stuff. Push the children of each element we pull
-    // until there are no children left.
+Now start emitting stuff. Push the children of each element we pull until there
+are no children left.
+
     while (child_selector.size()) {
       var i = +child_selector.pop(),
           x = xs[i];
@@ -176,43 +180,49 @@ methods.next_ceiling_ = function (v, i, depth) {
   var xs = this.xs_, l = xs.length;
   if (i + 1 >= l) i >>>= 1;                     // jagged leaves; move up
 
-  // Are we moving from a left to a right child? If so, we know we can't go up
-  // since otherwise the left child wouldn't have been the topmost ceiling.
+Are we moving from a left to a right child? If so, we know we can't go up since
+otherwise the left child wouldn't have been the topmost ceiling.
+
   var search_upwards = i & 1;                   // right child before moving?
   i++;                                          // if so, now we're at a left
 
-  // At this point we're at a node that may or may not be top-enough to be a
-  // valid ceiling. Handle the easy case first:
+At this point we're at a node that may or may not be top-enough to be a valid
+ceiling. Handle the easy case first:
+
   if (this.above_(v, xs[i]))
     // The node is a valid ceiling, so up-search if necessary and return it.
     return search_upwards ? this.topmost_ceiling_(v, i, depth)
                           : i;
 
-  // This case is more interesting. The new node isn't a valid ceiling, so we
-  // need to do a leaf-search and then move upwards from the first leaf that
-  // works. If no leaf, then we return null.
-  //
-  // This loop scans right until either we hit the end of the level, or we hit
-  // the end of the array. In the latter case we need to move up one level and
-  // continue scanning there.
+This case is more interesting. The new node isn't a valid ceiling, so we need
+to do a leaf-search and then move upwards from the first leaf that works. If no
+leaf, then we return null.
+
+This loop scans right until either we hit the end of the level, or we hit the
+end of the array. In the latter case we need to move up one level and continue
+scanning there.
+
   for (i <<= depth - infuse.msb(i); i & i - 1 && i < l; ++i)
     if (this.above_(v, xs[i]))
       return this.topmost_ceiling_(v, i, depth);
 
-  // This loop handles the level above. If we had hit the end of the last
-  // level, this loop will do nothing.
+This loop handles the level above. If we had hit the end of the last level,
+this loop will do nothing.
+
   for (i >>>= 1, l = 1 << depth; i < l; ++i)
     if (this.above_(v, xs[i]))
       return this.topmost_ceiling_(v, i, depth);
 
-  // We hit the end without finding a suitable leaf, so we're done.
+We hit the end without finding a suitable leaf, so we're done.
+
   return null;
 };
 
+Binary search to identify the topmost node that satisfies the ceiling property.
+This requires O(log log n) ordering checks (which I'm assuming are arbitrarily
+expensive).
+
 methods.topmost_ceiling_ = function (v, i, depth) {
-  // Binary search to identify the topmost node that satisfies the ceiling
-  // property. This requires O(log log n) ordering checks (which I'm assuming
-  // are arbitrarily expensive).
   var xs = this.xs_;
   for (var lower = 0, upper = depth; lower + 1 < upper;) {
     var mid = lower + upper >>> 1;

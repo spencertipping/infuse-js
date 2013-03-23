@@ -37,11 +37,27 @@ methods.values = function () {
   return infuse.array(g, this);
 };
 
+methods.pairs = function () {
+  var g = this.generator();
+  return infuse.array(function (emit, id) {
+    g(function (v, k) {return emit([v, k])}, id);
+  });
+};
+
 methods.inverse = function () {
   var g = this.generator();
   return this.derivative(function (emit, id) {
     g(function (v, k) {return emit(k, v)}, id);
   });
+};
+
+Generator combination.
+Methods to combine multiple objects. Combined objects inherit changes from
+multiple bases. `plus` is closed under the receiver's type.
+
+methods.plus = function () {
+  var f = infuse.funnel([this].concat(infuse.toa(arguments)));
+  return this.derivative(f.generator(), f);
 };
 
 Traversal.
@@ -100,6 +116,55 @@ methods.mapfilter = function (fn) {
     g(function (v, k) {
       var y = f(v, k);
       if (y) return emit(y, k);
+    }, id);
+  });
+};
+
+Lazy sorting.
+You can sort the values in any Infuse object and the result will be updated
+lazily. Generators that traverse sorted objects will remember the last value
+and will pick up at that point; so even if the Infuse object receives updates
+earlier on, all generators will see the most up-to-date fully-ordered view of
+data possible.
+
+Sorting functions return in constant time and the derivative collections are
+lazily sorted in O(r k log n) time, where r is the number of generator
+re-entrances, k is the number of realized elements, and n is the size of the
+receiver.
+
+These functions have a fairly large constant-factor overhead. You're much
+better off using Javascript's native `sort()` method unless you need lazy
+sorting.
+
+methods.sort = function (fn) {
+  var f    = fn && infuse.fn.apply(this, arguments),
+      h    = infuse.heapmap(f, this.generator(), this),
+      g    = h.generator(),
+      self = this;
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(self.get(k), k)}, id);
+  }, h);
+};
+
+methods.sortby = function (fn) {
+  return this.map.apply(this, arguments).sort();
+};
+
+The `uniq` method returns distinct values **from a sorted collection**. Because
+Infuse collections are potentially infinite (or at least, they have indefinite
+size), it doesn't try to maintain a set of all objects seen. As a result, it
+operates in constant space and per-element time, holding only the last-seen
+value. If given a function, values for which that function returns unique
+values are emitted.
+
+methods.uniq = function (fn) {
+  var f    = fn ? infuse.fn.apply(this, arguments)
+                : function (x) {return x},
+      g    = this.generator(),
+      last = {};                // {} !== everything
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {
+      if (last !== (last = f(v))) return emit(v, k);
     }, id);
   });
 };

@@ -24,7 +24,8 @@ objects, but that's generally where they come from.
 
 ```js
 methods.initialize = function (size, generator, base) {
-  this.xs_        = new Array(size),
+  this.xs_        = [],
+  this.size_      = size,
   this.zero_      = 0,
   this.base_      = base,
   this.generator_ = generator,
@@ -34,13 +35,13 @@ methods.initialize = function (size, generator, base) {
 ```
 
 ```js
-methods.size = function () {return this.xs_.length};
+methods.size = function () {return this.pull().xs_.length};
 ```
 
 ```js
 methods.push_ = function (v, k) {
   var z = this.zero_++;
-  this.xs_[z % this.xs_.length] = v;
+  this.xs_[z % this.size_] = v;
   return this;
 };
 ```
@@ -52,7 +53,7 @@ Nothing particularly interesting here. Derivatives inherit the parent's size.
 ```js
 methods.derivative = function (generator) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.tail(this.xs_.length, f, this);
+  return infuse.tail(this.size_, f, this);
 };
 ```
 

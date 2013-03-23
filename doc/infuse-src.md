@@ -123,6 +123,18 @@ infuse.mixin = function (name, body) {
 };
 ```
 
+# Infuse object passthrough
+
+If you invoke `infuse()` on something that is already an Infuse object, the
+object is returned verbatim. This allows you to transparently promote
+non-Infuse objects.
+
+```js
+infuse.alternatives.push(
+  {accepts:   function (x) {return x instanceof infuse},
+   construct: function (x) {return x}});
+```
+
 ```js
 });
 

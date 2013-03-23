@@ -54,13 +54,14 @@ methods.value = function () {return this.value_};
 
 # Derivatives
 
-Like futures, signals don't have base objects since updates are propagated
-forwards.
+Signals are linked back to their "version bases", or the objects that have been
+tasked with keeping them up to date. This makes it possible to call `detach` on
+a derivative future and remove both linkages.
 
 ```js
-methods.derivative = function (generator) {
+methods.derivative = function (generator, version_base) {
   var f = infuse.fn.apply(this, arguments);
-  return infuse.signal(f, this);
+  return infuse.signal(f, version_base || this);
 };
 ```
 
@@ -105,12 +106,8 @@ consist of a single key/value mapping, and sometimes the key is empty or null.
 
 ```js
 methods.get = function (k) {
-  // get() -> {} if undecided, {k: v} if decided
-  if (k === void 0) {
-    var result = {};
-    if (this.key_ != null) result[this.key_] = this.value_;
-    return result;
-  }
+  // get() -> v if decided, null if undecided
+  if (k === void 0) return this.value_;
 ```
 
 ```js
