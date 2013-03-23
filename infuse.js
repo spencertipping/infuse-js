@@ -1807,6 +1807,13 @@ methods.values = function () {
   return infuse.array(g, this);
 };
 
+methods.inverse = function () {
+  var g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(k, v)}, id);
+  });
+};
+
 // Traversal.
 // The generator order can be used to define `each`; we just throw the generator
 // away at the end. There is no ID associated with an `each` operation, so it will
@@ -1828,6 +1835,14 @@ methods.map = function (fn) {
       g = this.generator();
   return this.derivative(function (emit, id) {
     g(function (v, k) {return emit(f(v, k), k)}, id);
+  });
+};
+
+methods.mapk = function (fn) {
+  var f = infuse.fn.apply(this, arguments),
+      g = this.generator();
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(v, f(k, v))}, id);
   });
 };
 

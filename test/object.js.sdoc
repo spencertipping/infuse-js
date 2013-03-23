@@ -9,6 +9,9 @@ o.size()                        -> 3
 keys.size()                     -> 3
 o.get('foo')                    -> 1
 
+var i = o.inverse();
+i.get('1')                      -> 'foo'
+
 Also like arrays, you can `map` objects:
 
 var mapped = o.map('_ + 1');
@@ -21,6 +24,7 @@ the mapped output:
 
 o.push(4, 'baz')                -> o
 o.size()                        -> 4
+i.get('4')                      -> 'baz'
 mapped.size()                   -> 4
 mapped.get('baz')               -> 5
 
@@ -28,6 +32,9 @@ keys.size()                     -> 4
 keys.get().sort().join(',')     -> 'bar,baz,bif,foo'
 
 o.push(5, 'five') .push(6, 'six');
+i.get('5')                      -> 'five'
+i.get('6')                      -> 'six'
+
 o.push(7, 'seven').push(8, 'eight');
 
 keys.get().sort().join(',')     -> 'bar,baz,bif,eight,five,foo,seven,six'
@@ -35,3 +42,6 @@ mapped.get('five')              -> 6
 mapped.get('six')               -> 7
 mapped.get('seven')             -> 8
 mapped.get('eight')             -> 9
+
+mapped.size()                   -> 8
+i.size()                        -> 8
