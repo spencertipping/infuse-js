@@ -45,9 +45,14 @@ Arrays can be transformed eagerly and lazily. For example:
 
 ```js
 var ys = xs.map('_ + 1');
+var sum = xs.reduction(0, '_1 + _2');
 ys.size()                       -> 3
 ys.get().join(',')              -> '2,3,4'
 ys.version() > 0                -> true
+```
+
+```js
+sum.get()                       -> 6
 ```
 
 ```js
@@ -62,9 +67,10 @@ updates to the original array are reflected in any derivative arrays.
 ```js
 xs.push(5)                      -> xs
 xs.size()                       -> 4
-xs.get(-1)                      -> 5
-t.get(-1)                       -> 5
+xs.get().join(',')              -> '1,2,3,5'
+t.get().join(',')               -> '3,5'
 t.size()                        -> 2
+sum.get()                       -> 11
 ys.get(-1)                      -> 6
 ys.size()                       -> 4
 ```
@@ -98,18 +104,39 @@ bases. For example:
 
 ```js
 var all = xs.plus(zs);
-all.size()                      -> xs.size() + zs.size()
-all.get(0)                      -> xs.get(0)
-all.get(-1)                     -> zs.get(-1)
-all.get().join(',')             -> xs.get().join(',') + ',' + zs.get().join(',')
+all.size()             -> xs.size() + zs.size()
+all.get().join(',')    -> '1,2,3,5,6,foo,2,3,3,4,4,5,6,7,7,8,foo1,foo2'
 ```
 
-And like any other object, `all` will stay up to date with the object it's
+And like any other object, `all` will stay up to date with the objects it's
 based on:
 
 ```js
-var old_size = all.size();
 xs.push(4);
-all.size() > old_size           -> true
+all.get().join(',')    -> '1,2,3,5,6,foo,2,3,3,4,4,5,6,7,7,8,foo1,foo2,4,5,6'
+```
+
+Objects of any type can be combined. When they are, the result has the type of
+the receiver. For example:
+
+```js
+var sig = infuse.signal();
+var all = xs.plus(sig);
+```
+
+```js
+all.get().join(',')     -> '1,2,3,5,6,foo,4'
+sig.push('hi');
+all.get().join(',')     -> '1,2,3,5,6,foo,4,hi'
+```
+
+```js
+var o = infuse({});
+all = all.plus(o);
+```
+
+```js
+o.push('val', 'k');
+all.get().join(',')     -> '1,2,3,5,6,foo,4,hi,val'
 
 ```

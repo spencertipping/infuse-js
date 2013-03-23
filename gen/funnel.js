@@ -39,15 +39,16 @@ methods.generator = function () {
   var generators = [],
       versions   = [],
       self       = this;
-  for (var i = 0, bs = this.bases_, b, l = bs.length; i < l; ++i)
-    generators.push((b = bs[i]).generator()),
+  for (var i = 0, bs = this.bases_, l = bs.length; i < l; ++i)
+    generators.push(bs[i].generator()),
     versions.push(-1);
+
   return function (emit, id) {
     var v  = 0,
         bs = self.bases_;
     if (bs)
       for (var i = 0, l = versions.length; i < l; ++i)
-        if ((v = bs[i].version()) > versions[i])
+        if ((v = bs[i].pull().version()) > versions[i])
           versions[i] = v,
           generators[i](emit, id);
   };

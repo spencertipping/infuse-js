@@ -1,7 +1,7 @@
 # Order matters for JS deps.
 INFUSE_JS_DEPS = gen/infuse.js \
 		 gen/mixin-pull.js gen/mixin-push.js \
-		 gen/funnel.js \
+		 gen/funnel.js gen/cell.js \
 		 gen/util.js gen/heapmap.js gen/cache.js gen/fn.js \
 		 gen/array.js gen/tail.js gen/object.js gen/multiobject.js \
 		 gen/future.js gen/signal.js \

@@ -218,8 +218,8 @@ sequences and lazy right-folds anyway).
 As a result, we implement two forms of `reduce`. The eager one, `reduce`,
 returns a final answer that is not wrapped in an Infuse object, while the lazy
 one, `reductions`, returns a result whose value may be updated as the
-underlying sequence gains values. It's an error to call `reduce` on a
-push-propagated Infuse object like a future or a signal.
+underlying sequence gains values. You're allowed to call `reduce` on a future
+or signal, but it probably won't do anything very useful.
 
 However, you can invoke `f.reductions(0, '_1 + _2')` to get a future that is
 initially undelivered and then is delivered with the receiver. (Reducing a
@@ -232,6 +232,10 @@ any kind of "last" value. So if you want to fold it up, the best you can do is
 observe it at each change point, and to do that you ask for all of its
 reductions.
 
+If you're only interested in the last value of `reductions`, such as if you
+just want a running total, you can use `reduction` to avoid consing up an
+array.
+
 ```js
 methods.reductions = function (into, fn) {
   var f = infuse.fnarg(arguments, 1),
@@ -239,6 +243,16 @@ methods.reductions = function (into, fn) {
   return this.derivative(function (emit, id) {
     g(function (v, k) {return emit(into = f(into, v, k), k)}, id);
   });
+};
+```
+
+```js
+methods.reduction = function (into, fn) {
+  var f = infuse.fnarg(arguments, 1),
+      g = this.generator();
+  return infuse.cell(function (emit, id) {
+    g(function (v, k) {return emit(into = f(into, v, k), k)}, id);
+  }, this);
 };
 ```
 

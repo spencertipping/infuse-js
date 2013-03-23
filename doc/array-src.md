@@ -83,7 +83,7 @@ so that any new elements on the base can be transformed accordingly.
 
 ```js
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
+  var f = infuse.fn(generator);
   return infuse.array(f, version_base || this);
 };
 ```
