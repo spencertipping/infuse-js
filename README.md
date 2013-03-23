@@ -42,7 +42,7 @@ and returns another. But in Infuse, `map` returns a _sequence view_ that is
 updated on-demand. This paradigm is pervasive, even across data types:
 
 ```js
-var grouped = xs.group('_ % 3');
+var grouped = ys.group('_ % 3');
 index.get()             // -> {'0': [3, 9], '1': [7, 13], '2': [5, 11]}
 xs.push(14);
 index.get()             // -> {'0': [3, 9, 15], '1': [7, 13], '2': [5, 11]}
