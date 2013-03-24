@@ -54,5 +54,28 @@ sig2.push(3);
 both.get().keys().sort().join(',')      -> 'bar,foo'
 both.get().get('foo')                   -> 6
 both.get().get('bar')                   -> 3
-
 ```
+
+Warning: **`progress` will not do the right thing with arrays**! Infuse arrays
+are dense and append-only, which means that there isn't a way to update
+existing elements. As a result, progressing signals into an array will result
+in an array that grows with elements in the order that the signals emitted
+them. For example:
+
+```js
+var sig1 = infuse.signal();
+var sig2 = infuse.signal();
+var all  = infuse.progress([sig1, sig2]);
+```
+
+```js
+all.get()                               -> null
+sig2.push(4);
+all.get().join(',')                     -> '4'
+sig2.push(5);
+all.get().join(',')                     -> '4,5'
+sig1.push(10);
+all.get().join(',')                     -> '4,5,10'
+```
+
+You should use objects if you need keys to be significant.

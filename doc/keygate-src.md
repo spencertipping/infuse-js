@@ -73,6 +73,16 @@ infuse.keygate.alternatives.push(
    construct: function ()  {return function () {return true}}});
 ```
 
+# Reject-alls
+
+Using `false` as a keygate results in a function that accepts nothing.
+
+```js
+infuse.keygate.alternatives.push(
+  {accepts:   function (x) {return x === false},
+   construct: function ()  {return function () {return false}}});
+```
+
 ```js
 });
 
