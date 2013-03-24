@@ -33,6 +33,7 @@ i.size()                        -> 3
 
 ```js
 o.push(2, 'bif');
+i.size()                        -> 4
 i.get('2').join(',')            -> 'foo,bif'
 ```
 

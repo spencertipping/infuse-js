@@ -124,19 +124,12 @@ methods.get = function (k) {
   if (k === void 0) return o;
 
   // get(k) -> o[k]
-  if ((typeof k === typeof '' || k instanceof String) &&
-      Object.prototype.hasOwnProperty.call(o, k))
-    return o[k];
-
-  // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (k instanceof Array) {
-    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
-    return r;
-  }
+  if (typeof k === typeof '' || k instanceof String) return o[k];
 
   // get(...) = fn(...)(this, this.id())
   return infuse.fn.apply(this, arguments)(this, this.id());
 };
+
 
 });
 

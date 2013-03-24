@@ -1030,6 +1030,20 @@ infuse.fn.auto_gc = function () {
   });
 };
 
+// Things with a `fn` method.
+// Any object that defines a `fn` method will be promoted into a function using
+// that method. Because Infuse objects support `fn`, we also try promoting the
+// object into an Infuse collection and using its `fn` method.
+
+infuse.fn.alternatives.push(
+  {accepts:   function (x) {return true},
+   construct: function (x) {var i = infuse.apply(this, arguments);
+                            return i.fn.apply(i, infuse.slice(arguments, 1))}});
+
+infuse.fn.alternatives.push(
+  {accepts:   function (x) {return x && x.fn instanceof Function},
+   construct: function (x) {return x.fn.apply(x, infuse.slice(arguments, 1))}});
+
 // Regular expressions.
 // Regular expression functions return either a match object (for regexps with
 // no capturing groups), or strings (for regexps with one or more capturing
@@ -1369,12 +1383,6 @@ methods.get = function (n, fn) {
       return f(xs[i1], xs[i2], x);
     }
 
-  // get([x1, x2, x3, ...]) = [get(x1), get(x2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = n.length; i < l; ++i) r.push(this.get(n[i]));
-    return r;
-  }
-
   // get(...) = fn(...)(this, this.id())
   return infuse.fn.apply(this, arguments)(this, this.id());
 };
@@ -1657,19 +1665,12 @@ methods.get = function (k) {
   if (k === void 0) return o;
 
   // get(k) -> o[k]
-  if ((typeof k === typeof '' || k instanceof String) &&
-      Object.prototype.hasOwnProperty.call(o, k))
-    return o[k];
-
-  // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (k instanceof Array) {
-    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
-    return r;
-  }
+  if (typeof k === typeof '' || k instanceof String) return o[k];
 
   // get(...) = fn(...)(this, this.id())
   return infuse.fn.apply(this, arguments)(this, this.id());
 };
+
 
 });
 
@@ -1739,7 +1740,7 @@ methods.push_ = function (v, k) {
   // this distinction. Otherwise push_(x, 'toString') would cause a runtime
   // error.
   if (Object.prototype.hasOwnProperty.call(o, k)) o[k].push(v);
-  else                                            o[k] = [v];
+  else                                            o[k] = infuse.array([v]);
 
   this.journal().push(this.version_, k);
   ++this.size_;
@@ -1777,18 +1778,21 @@ methods.derivative = function (generator, version_base) {
 
 methods.generator = function () {
   var journal_generator = this.journal().generator(),
+      value_generators  = {},
       o                 = this.o_;
-  return function (emit) {
-    // Expand each value-array and invoke emit() multiple times per key
+  return function (emit, id) {
     return journal_generator(function (v, k) {
-      for (var i = 0, xs = o[k], l = xs.length; i < l; ++i)
-        if (emit(xs[i], k) === false) return false;
+      if (!Object.prototype.hasOwnProperty.call(value_generators, k))
+        value_generators[k] = o[k].generator();
+      value_generators[k](function (v) {return emit(v, k)}, id);
     });
   };
 };
 
 // Retrieval.
-// The `get` method returns an array of values for any existing key.
+// The `get` method returns an Infuse array of values for any existing key. You
+// can construct derivatives of any such array, and those derivatives will be
+// updated as more values are added to that key.
 
 methods.get = function (k) {
   var o = this.pull().o_;
@@ -1796,16 +1800,8 @@ methods.get = function (k) {
   // get() -> o (don't modify this!)
   if (k === void 0) return o;
 
-  // get(k) -> o[k]
-  if ((typeof k === typeof '' || k instanceof String) &&
-      Object.prototype.hasOwnProperty.call(o, k))
-    return o[k];
-
-  // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (k instanceof Array) {
-    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
-    return r;
-  }
+  // get(k) -> o[k] (an Infuse array of values, or undefined)
+  if (typeof k === typeof '' || k instanceof String) return o[k];
 
   // get(...) = fn(...)(this)
   return infuse.fn.apply(this, arguments)(this, this.id());
@@ -2398,6 +2394,15 @@ methods.into = function (xs_or_constructor) {
   return this.into(infuse.apply(this, arguments)).get();
 };
 
+// Sometimes you have multiple nested Infuse objects (particularly with futures),
+// and you want to get to a primitive. You can do this with `fget`:
+
+methods.fget = function () {
+  var result = this.get.apply(this, arguments);
+  while (result instanceof infuse) result = result.get();
+  return result;
+};
+
 // Pairing.
 // Any Infuse object can be encoded as an array of `[value, key]` pairs.
 // Similarly, we can construct an Infuse collection of many types from such an
@@ -2501,6 +2506,26 @@ methods.mapfilter = function (fn) {
 
 methods.join = function (sep) {
   return this.values().get().join(sep);
+};
+
+// Default function promotion.
+// Infuse objects can be promoted into structure-preserving functions. For
+// example, `{foo: f}` becomes `function (x) {return {foo: f(x)}}`. Like all
+// Infuse objects, the function result is an automatically-updating derivative,
+// and it generates derivative Infuse collections.
+
+methods.fn = function () {
+  var mapped = this.map(function (v, k) {
+    var f = infuse.fn(v);
+    return function (x) {
+      if (x instanceof infuse) return x.get(v);
+      else                     return f.apply(this, arguments);
+    };
+  });
+  return function () {
+    var self = this, args = arguments;
+    return mapped.map(function (v, k) {return v.apply(self, args)});
+  };
 };
 
 // Lazy sorting.

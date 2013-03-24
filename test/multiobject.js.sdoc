@@ -21,6 +21,7 @@ i.get('2').join(',')            -> 'foo'
 i.size()                        -> 3
 
 o.push(2, 'bif');
+i.size()                        -> 4
 i.get('2').join(',')            -> 'foo,bif'
 
 Multiobjects are generated when you `group` a collection. For example:

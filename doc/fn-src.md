@@ -47,6 +47,25 @@ infuse.fn.auto_gc = function () {
 };
 ```
 
+# Things with a `fn` method
+
+Any object that defines a `fn` method will be promoted into a function using
+that method. Because Infuse objects support `fn`, we also try promoting the
+object into an Infuse collection and using its `fn` method.
+
+```js
+infuse.fn.alternatives.push(
+  {accepts:   function (x) {return true},
+   construct: function (x) {var i = infuse.apply(this, arguments);
+                            return i.fn.apply(i, infuse.slice(arguments, 1))}});
+```
+
+```js
+infuse.fn.alternatives.push(
+  {accepts:   function (x) {return x && x.fn instanceof Function},
+   construct: function (x) {return x.fn.apply(x, infuse.slice(arguments, 1))}});
+```
+
 # Regular expressions
 
 Regular expression functions return either a match object (for regexps with

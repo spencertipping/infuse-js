@@ -42,10 +42,14 @@ and returns another. But in Infuse, `map` returns a _sequence view_ that is
 updated on-demand. This paradigm is pervasive, even across data types:
 
 ```js
-var index = ys.group('_ % 3');
-index.get()             // -> {'0': [3, 9], '1': [7, 13], '2': [5, 11]}
+var group = ys.group('_ % 3');
+group.get()             // -> {'0': infuse([3, 9]),
+                        //     '1': infuse([7, 13]),
+                        //     '2': infuse([5, 11])}
 xs.push(14);
-index.get()             // -> {'0': [3, 9, 15], '1': [7, 13], '2': [5, 11]}
+group.get()             // -> {'0': infuse([3, 9, 15]),
+                        //     '1': infuse([7, 13]),
+                        //     '2': infuse([5, 11])}
 ```
 
 Garbage collection can be an issue when building views of large sequences, so
@@ -53,13 +57,23 @@ Infuse gives you a constant-time method to detach a view's source and make it
 independently mutable:
 
 ```js
-index.detach()          // -> index
-index.push(17, '0')     // -> index
-index.get()             // -> {'0': [3, 9, 15, 17], '1': [7, 13], '2': [5, 11]}
+group.detach()          // -> group
+group.push(17, '0')     // -> group
+group.get()             // -> {'0': infuse([3, 9, 15, 17]),
+                        //     '1': infuse([7, 13]),
+                        //     '2': infuse([5, 11])}
 ```
 
 At this point, all data associated with `xs` can be garbage-collected once `xs`
 goes out of scope.
+
+Because the entries in a grouping are valid Infuse objects, you can make
+derivatives of those as well:
+
+```js
+var zeroes = group.get('0').map('_ + 1');
+zeroes.get()            // -> [4, 10, 16, 18]
+```
 
 ## Semantics
 

@@ -98,7 +98,7 @@ for instance, that grouping may store old values:
 ```js
 var group = tail.group('_');
 group.size()                                    -> 3
-group.get('bar').length                         -> 1
+group.get('bar').size()                         -> 1
 ```
 
 ```js
@@ -107,6 +107,6 @@ tail.size()                                     -> 3
 group.size()                                    -> 4
 sig.push('bar');
 group.size()                                    -> 5
-group.get('bar').length                         -> 2
+group.get('bar').size()                         -> 2
 
 ```

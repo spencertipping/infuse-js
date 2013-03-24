@@ -101,6 +101,17 @@ methods.into = function (xs_or_constructor) {
 };
 ```
 
+Sometimes you have multiple nested Infuse objects (particularly with futures),
+and you want to get to a primitive. You can do this with `fget`:
+
+```js
+methods.fget = function () {
+  var result = this.get.apply(this, arguments);
+  while (result instanceof infuse) result = result.get();
+  return result;
+};
+```
+
 # Pairing
 
 Any Infuse object can be encoded as an array of `[value, key]` pairs.
@@ -229,6 +240,29 @@ For convenience:
 ```js
 methods.join = function (sep) {
   return this.values().get().join(sep);
+};
+```
+
+# Default function promotion
+
+Infuse objects can be promoted into structure-preserving functions. For
+example, `{foo: f}` becomes `function (x) {return {foo: f(x)}}`. Like all
+Infuse objects, the function result is an automatically-updating derivative,
+and it generates derivative Infuse collections.
+
+```js
+methods.fn = function () {
+  var mapped = this.map(function (v, k) {
+    var f = infuse.fn(v);
+    return function (x) {
+      if (x instanceof infuse) return x.get(v);
+      else                     return f.apply(this, arguments);
+    };
+  });
+  return function () {
+    var self = this, args = arguments;
+    return mapped.map(function (v, k) {return v.apply(self, args)});
+  };
 };
 ```
 

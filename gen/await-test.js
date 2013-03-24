@@ -22,6 +22,9 @@ f1.push(3);
 infuse.assert_equal((f_called                                ), (true));
 infuse.assert_equal((f.get().join(',')                       ), ('3,5'));
 
+// Notice that `await` preserves the order of the original futures, regardless of
+// the order in which they are delivered.
+
 // Awaiting is appropriate when you want to block on all futures (or signals), but
 // sometimes you want updates as they are resolved. In that case use `progress`:
 
@@ -32,14 +35,14 @@ var both = infuse.progress(infuse({foo: sig1, bar: sig2}));
 infuse.assert_equal((both.get()                              ), (null));
 sig1.push(5);
 infuse.assert_equal((both.get().keys().sort().join(',')      ), ('foo'));
-infuse.assert_equal((both.get().get('foo')                   ), (5));
+infuse.assert_equal((both.fget().foo                         ), (5));
 sig1.push(6);
 infuse.assert_equal((both.get().keys().sort().join(',')      ), ('foo'));
-infuse.assert_equal((both.get().get('foo')                   ), (6));
+infuse.assert_equal((both.fget().foo                         ), (6));
 sig2.push(3);
 infuse.assert_equal((both.get().keys().sort().join(',')      ), ('bar,foo'));
-infuse.assert_equal((both.get().get('foo')                   ), (6));
-infuse.assert_equal((both.get().get('bar')                   ), (3));
+infuse.assert_equal((both.fget().foo                         ), (6));
+infuse.assert_equal((both.fget().bar                         ), (3));
 
 // Warning: **`progress` will not do the right thing with arrays**! Infuse arrays
 // are dense and append-only, which means that there isn't a way to update

@@ -65,7 +65,7 @@ methods.push_ = function (v, k) {
   // this distinction. Otherwise push_(x, 'toString') would cause a runtime
   // error.
   if (Object.prototype.hasOwnProperty.call(o, k)) o[k].push(v);
-  else                                            o[k] = [v];
+  else                                            o[k] = infuse.array([v]);
 ```
 
 ```js
@@ -111,12 +111,13 @@ pair for each value mapped by a key.
 ```js
 methods.generator = function () {
   var journal_generator = this.journal().generator(),
+      value_generators  = {},
       o                 = this.o_;
-  return function (emit) {
-    // Expand each value-array and invoke emit() multiple times per key
+  return function (emit, id) {
     return journal_generator(function (v, k) {
-      for (var i = 0, xs = o[k], l = xs.length; i < l; ++i)
-        if (emit(xs[i], k) === false) return false;
+      if (!Object.prototype.hasOwnProperty.call(value_generators, k))
+        value_generators[k] = o[k].generator();
+      value_generators[k](function (v) {return emit(v, k)}, id);
     });
   };
 };
@@ -124,7 +125,9 @@ methods.generator = function () {
 
 # Retrieval
 
-The `get` method returns an array of values for any existing key.
+The `get` method returns an Infuse array of values for any existing key. You
+can construct derivatives of any such array, and those derivatives will be
+updated as more values are added to that key.
 
 ```js
 methods.get = function (k) {
@@ -137,18 +140,8 @@ methods.get = function (k) {
 ```
 
 ```js
-  // get(k) -> o[k]
-  if ((typeof k === typeof '' || k instanceof String) &&
-      Object.prototype.hasOwnProperty.call(o, k))
-    return o[k];
-```
-
-```js
-  // get([k1, k2, ...]) = [get(k1), get(k2), ...]
-  if (k instanceof Array) {
-    for (var r = [], i = 0, l = k.length; i < l; ++i) r.push(this.get(k[i]));
-    return r;
-  }
+  // get(k) -> o[k] (an Infuse array of values, or undefined)
+  if (typeof k === typeof '' || k instanceof String) return o[k];
 ```
 
 ```js

@@ -33,6 +33,9 @@ f_called                                -> true
 f.get().join(',')                       -> '3,5'
 ```
 
+Notice that `await` preserves the order of the original futures, regardless of
+the order in which they are delivered.
+
 Awaiting is appropriate when you want to block on all futures (or signals), but
 sometimes you want updates as they are resolved. In that case use `progress`:
 
@@ -46,14 +49,14 @@ var both = infuse.progress(infuse({foo: sig1, bar: sig2}));
 both.get()                              -> null
 sig1.push(5);
 both.get().keys().sort().join(',')      -> 'foo'
-both.get().get('foo')                   -> 5
+both.fget().foo                         -> 5
 sig1.push(6);
 both.get().keys().sort().join(',')      -> 'foo'
-both.get().get('foo')                   -> 6
+both.fget().foo                         -> 6
 sig2.push(3);
 both.get().keys().sort().join(',')      -> 'bar,foo'
-both.get().get('foo')                   -> 6
-both.get().get('bar')                   -> 3
+both.fget().foo                         -> 6
+both.fget().bar                         -> 3
 ```
 
 Warning: **`progress` will not do the right thing with arrays**! Infuse arrays

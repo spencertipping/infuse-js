@@ -21,6 +21,7 @@ infuse.assert_equal((i.get('2').join(',')            ), ('foo'));
 infuse.assert_equal((i.size()                        ), (3));
 
 o.push(2, 'bif');
+infuse.assert_equal((i.size()                        ), (4));
 infuse.assert_equal((i.get('2').join(',')            ), ('foo,bif'));
 
 // Multiobjects are generated when you `group` a collection. For example:
