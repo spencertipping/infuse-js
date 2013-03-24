@@ -136,5 +136,28 @@ We didn't detach the grouped multiobject, so we still have it:
 ```js
 grouped.size()                  -> 7
 grouped.get('value').join(',')  -> '5,5,1,2,3,4'
+```
+
+You can get a future from a signal by invoking `once` with no callback:
+
+```js
+var future = g.once();
+future.get()                    -> null
+g.push(6).get()                 -> 6
+future.get()                    -> 6
+g.push(7).get()                 -> 7
+future.get()                    -> 6
+```
+
+You can also specify a keygate, in which case the first matching event will
+trigger the future:
+
+```js
+var future2 = g.once('foo bar');
+future2.get()                   -> null
+g.push(5, 'banana');
+future2.get()                   -> null
+g.push(5, 'foo');
+future2.get()                   -> 5
 
 ```
