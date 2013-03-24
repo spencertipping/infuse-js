@@ -31,8 +31,11 @@ sorted.join(',')                        -> '1,2,3,4,5'
 ```
 
 Sorted collections are unique under the sorted value; any new values must sort
-strictly above the last-seen value. But you can collapse contiguous runs of
-values with the `uniq` method:
+strictly above the last-seen value.
+
+If your collection is sorted, then you can use `uniq` to get a derivative of
+distinct elements. `uniq` also works for unsorted collections, but then it
+removes only local runs of duplicates.
 
 ```js
 var uniqs = xs.uniq();
