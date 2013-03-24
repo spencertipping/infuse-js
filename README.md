@@ -83,6 +83,7 @@ function:
 - [multiobjects](doc/multiobject.md)
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
+- [edges](doc/edge.md)
 - [fn](doc/fn.md)
 
 Also useful:
@@ -91,13 +92,31 @@ Also useful:
 - [global utility functions](doc/util-src.md)
 - [sorting](doc/sorting.md)
 
-You can also see the low-level stuff:
+And the low-level stuff:
 
 - [generators](doc/generators.md)
 - [versions](doc/versions.md)
 - [heapmap](doc/heapmap.md)
-- [funnel source](doc/funnel-src.md)
-- [cache source](doc/cache-src.md)
+
+Annotated source:
+
+- [array](doc/array-src.md)
+- [cache](doc/cache-src.md)
+- [cell](doc/cell-src.md)
+- [edge](doc/edge-src.md)
+- [fn](doc/fn-src.md)
+- [funnel](doc/funnel-src.md)
+- [future](doc/future-src.md)
+- [heapmap](doc/heapmap-src.md)
+- [infuse](doc/infuse-src.md)
+- [methods](doc/methods-src.md)
+- [mixin-pull](doc/mixin-pull-src.md)
+- [mixin-push](doc/mixin-push-src.md)
+- [multiobject](doc/multiobject-src.md)
+- [object](doc/object-src.md)
+- [signal](doc/signal-src.md)
+- [tail](doc/tail-src.md)
+- [util](doc/util-src.md)
 
 ## Building Infuse
 
