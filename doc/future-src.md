@@ -60,9 +60,8 @@ methods.initialize = function (generator, base) {
 ```
 
 ```js
-methods.size  = function () {return +!this.listeners_};
-methods.key   = function () {return this.key_};
-methods.value = function () {return this.value_};
+methods.size = function () {return +!this.listeners_};
+methods.key  = function () {return this.key_};
 ```
 
 # Derivatives
@@ -86,7 +85,7 @@ methods.generator = function () {
     var self = this;
     g = this.generator_ = function (emit, id) {
       var ls = self.listeners_;
-      if (ls) id != null && (ls[id] = emit);
+      if (ls) ls[id || infuse.gen_id()] = emit;
       else    return emit(self.value_, self.key_);
     };
   }
@@ -166,7 +165,11 @@ methods.on = function (keygate, callback, id) {
 ```
 
 Futures can be resolved at most once, so these methods do the same thing. (But
-this is not the case for signals.)
+this is not the case for signals.) Note that it is not a good idea for `once()`
+to optimize the no-keygate case, for two reasons. First, the user can change
+the behavior of an unspecified (undefined) keygate; and second, the result
+should always be different from the receiver so that calling `detach` on it
+won't disrupt the receiver's derivative status.
 
 ```js
 methods.once = function (keygate, callback, id) {

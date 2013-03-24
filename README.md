@@ -86,6 +86,7 @@ function:
 - [edges](doc/edge.md)
 - [functions](doc/fn.md)
 - [sorting](doc/sorting.md)
+- [awaiting](doc/await.md)
 
 Also useful:
 
@@ -96,6 +97,7 @@ And the low-level stuff:
 
 - [generators](doc/generators.md)
 - [versions](doc/versions.md)
+- [constructors](doc/constructors.md)
 - [heapmap](doc/heapmap.md)
 
 Annotated source:

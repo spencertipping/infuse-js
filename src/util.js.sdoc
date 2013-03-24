@@ -23,28 +23,26 @@ Note that awaiting a collection of futures ignores the futures' keys.
 
 infuse.await = function (xs) {
   var wrapped   = xs === (xs = infuse(xs)),
-      root      = infuse.immediate([]),
-      collector = xs.pairs().detach().reduce(root, function (f, p) {
-        var v = p[0], k = p[1];
+      root      = infuse.immediate(xs.zero()),
+      collector = xs.reduce(root, function (base, v, k) {
         return v instanceof infuse.future || v instanceof infuse.signal
-          ? f.first().flatmap(function (pairs) {
-              v.map(function (v) {
-                pairs.push([v, k]);
-                return pairs;
-              });
+          ? base.flatmap(function (result) {
+              return v.once().map(function (v) {return result.push(v, k)});
             })
-          : f.first().map(function (pairs) {
-              pairs.push([v, k]);
-              return pairs;
-            });
+          : base.map(function (result) {return result.push(v, k)});
       });
 
-  return collector.map(function (pairs) {
-    var g = infuse(pairs).generator();
-    return xs.derivative(function (emit, id) {
-      g(function (pair) {return emit(pair[0], pair[1])});
-    });
+  return collector.map(function (result) {
+    return wrapped ? result : result.get();
   });
+};
+
+Similar to `await` is `progress`, which gives you a signal of reductions as the
+individual futures complete. It supports signal values, not just future values,
+and the reduction is updated each time of the signals changes.
+
+infuse.progress = function (xs) {
+  var wrapped = xs === (xs = infuse(xs));
 };
 
 Internal functions.

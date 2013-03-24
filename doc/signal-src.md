@@ -47,9 +47,8 @@ methods.initialize = function (generator, base) {
 ```
 
 ```js
-methods.size  = function () {return this.size_};
-methods.key   = function () {return this.key_};
-methods.value = function () {return this.value_};
+methods.size = function () {return this.size_};
+methods.key  = function () {return this.key_};
 ```
 
 # Derivatives

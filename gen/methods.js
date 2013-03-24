@@ -30,18 +30,12 @@ methods.keys = function () {
 };
 
 // This just converts the object to an Infuse array. It's important that this
-// method returns a distinct object; otherwise things like detach() might be
-// sent to the wrong receiver.
+// method returns a distinct object; otherwise things like detach() might be sent
+// to the wrong receiver.
+
 methods.values = function () {
   var g = this.generator();
   return infuse.array(g, this);
-};
-
-methods.pairs = function () {
-  var g = this.generator();
-  return infuse.array(function (emit, id) {
-    g(function (v, k) {return emit([v, k])}, id);
-  });
 };
 
 methods.inverse = function () {
@@ -51,20 +45,80 @@ methods.inverse = function () {
   });
 };
 
+// Transcoding.
+// All Infuse objects are expressed in terms of generators that emit (value, key)
+// tuples. This means that you can easily convert between types. The simplest way
+// to do it is to use `into`, which has two main modes of operation. If you say
+// something like `xs.into(infuse.array)`, you'll get a derivative array. If you
+// use it with an existing Infuse object, or something that can be promoted into
+// an Infuse object, you'll get that object back with extra elements.
+
+// You can't use `into` to modify a derivative; doing so will result in an error.
+
+methods.into = function (xs_or_constructor) {
+  if (typeof xs_or_constructor === typeof infuse) {     // constructor function?
+    var args = infuse.slice(arguments, 1);
+    args.push(this.generator());
+    args.push(this);
+    return xs_or_constructor.apply(infuse, args);
+  }
+
+  if (xs_or_constructor instanceof infuse) {            // wrapped already?
+    this.generator()(function (v, k) {xs_or_constructor.push(v, k)});
+    return xs_or_constructor;
+  }
+
+  // A primitive type. Promote it, push values in, and then convert back to a
+  // primitive.
+  return this.into(infuse.apply(this, arguments)).get();
+};
+
+// Pairing.
+// Any Infuse object can be encoded as an array of `[value, key]` pairs.
+// Similarly, we can construct an Infuse collection of many types from such an
+// array. Note that while `pairs` returns a true derivative, `unpair` does not and
+// in general can't: it isn't always possible to attach an Infuse collection to an
+// arbitrary source. For cases when it is possible, you should use the `into`
+// method.
+
+methods.pairs = function () {
+  var g = this.generator();
+  return infuse.array(function (emit, id) {
+    g(function (v, k) {return emit([v, k])}, id);
+  }, this);
+};
+
+// You can use `unpair` to transcode objects: `infuse({}).unpair(xs.pairs())`.
+// This form is useful when the receiver, which receives elements, doesn't have a
+// fixed type. (Though it's faster just to use `into` unless you're transforming
+// the values.)
+
+methods.unpair = function (pairs) {
+  var g    = infuse(pairs).generator(),
+      self = this;
+  g(function (pair) {self.push(pair[0], pair[1])});
+  return this;
+};
+
 // Generator combination.
 // Methods to combine multiple objects. Combined objects inherit changes from
-// multiple bases. `plus` is closed under the receiver's type.
+// multiple bases. `plus` and `zero` are closed under the receiver's type.
 
 methods.plus = function () {
   var f = infuse.funnel([this].concat(infuse.toa(arguments)));
   return this.derivative(f.generator(), f);
 };
 
+methods.zero = function () {
+  return this.derivative(function () {}, this).detach();
+};
+
 // Traversal.
 // The generator order can be used to define `each`; we just throw the generator
-// away at the end. There is no ID associated with an `each` operation, so it will
-// throw an error for asynchronous objects. (If you want to handle asynchronous
-// operations, you should use `on`.)
+// away at the end. If you invoke `each` on an asynchronous collection, the
+// iterator function will be invoked at some point in the future. You may prefer
+// the `on` and `once` methods on futures and signals if you want finer-grained
+// control over asynchronous callback behavior.
 
 methods.each = function (fn) {
   var f = infuse.fn.apply(this, arguments);
@@ -97,7 +151,7 @@ methods.flatmap = function (fn) {
       g = this.generator();
   return this.derivative(function (emit, id) {
     g(function (v, k) {var y = f(v, k);
-                       return y && infuse(f(v, k)).each(emit)}, id);
+                       return y && infuse(y).each(emit)}, id);
   });
 };
 

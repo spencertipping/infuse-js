@@ -27,5 +27,33 @@ g.on('value', function (x) {
 
 And we can get its value directly:
 
-f.value()                       -> 5
-g.value()                       -> 6
+f.get()                         -> 5
+g.get()                         -> 6
+
+Futures also support flat-mapping, which lets you compose asynchronous
+computation:
+
+var f = infuse.future();
+var g = infuse.future();
+
+var got_first  = false;
+var got_second = false;
+
+var both = f.flatmap(function (v) {
+  got_first = true;
+  return g;
+});
+
+g.on(null, function (v) {got_second = true});
+f.push('foo');
+f.get()                         -> 'foo'
+g.get()                         -> null
+both.get()                      -> null
+got_first                       -> true
+got_second                      -> false
+
+g.push('bar');
+g.get()                         -> 'bar'
+both.get()                      -> 'bar'
+got_first                       -> true
+got_second                      -> true

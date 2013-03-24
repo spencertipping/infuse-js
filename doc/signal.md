@@ -85,15 +85,15 @@ g.size()                        -> 0
 ```js
 trigger(1);
 g.size()                        -> 1
-g.value()                       -> 1
+g.get()                         -> 1
 g_called                        -> 1
 ```
 
 ```js
 trigger(2);
-g.value()                       -> 3
+g.get()                         -> 3
 trigger(3);
-g.value()                       -> 6
+g.get()                         -> 6
 ```
 
 When you want to free memory, you can detach a derivative signal from its base.
@@ -102,7 +102,7 @@ This prevents it from receiving future events from that base.
 ```js
 g.detach();
 trigger(4);
-g.value()                       -> 6
+g.get()                         -> 6
 ```
 
 You can't detach callbacks because they aren't Infuse objects (internally, the
@@ -122,13 +122,13 @@ g.once('value', function (x) {
 ```js
 g.push(10, 'value');
 once_called                     -> 1
-g.value()                       -> 10
+g.get()                         -> 10
 ```
 
 ```js
 g.push(15, 'value');
 once_called                     -> 1
-g.value()                       -> 15
+g.get()                         -> 15
 ```
 
 We didn't detach the grouped multiobject, so we still have it:
@@ -159,5 +159,50 @@ g.push(5, 'banana');
 future2.get()                   -> null
 g.push(5, 'foo');
 future2.get()                   -> 5
-
 ```
+
+Like futures, signals support flatmapping. However, be careful: flatmapping
+signals will most likely cause a space leak and is probably not what you want
+to do. If you do need to flatmap a signal, you should demote the outer one into
+a future by calling `once`. I'm doing it the wrong way below to illustrate what
+happens:
+
+```js
+var sig1 = infuse.signal();
+var sig2 = null;
+var both = sig1.flatmap(function (v) {
+  sig2 = infuse.signal();
+  return sig2.map('_ + v', {v: v});
+});
+```
+
+```js
+var calls = 0;
+both.on(null, function () {++calls});
+```
+
+```js
+both.get()                      -> null
+sig1.push(3).get()              -> 3
+both.get()                      -> null
+sig2.get()                      -> null
+```
+
+```js
+sig2.push(4).get()              -> 4
+both.get()                      -> 7
+calls                           -> 1
+```
+
+Here's what I mentioned earlier about the space leak:
+
+```js
+sig1.push(5);
+sig2.push(5);
+calls                                   -> 3
+[8, 10].indexOf(both.get()) >= 0        -> true
+```
+
+The value of `both` is nondeterministic at this point. It is being updated by
+two children of `sig1`, and signal broadcast events occur in no specified
+order.
