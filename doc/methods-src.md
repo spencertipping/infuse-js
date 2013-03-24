@@ -395,9 +395,8 @@ methods.group = function (fn) {
 
 # Tail
 
-Not like the UNIX `tail` command: instead, the tail of an Infuse object always
-contains the N most recent elements emitted for that object. The keys are
-modified to be the indexes at which the elements are emitted.
+Just like the UNIX `tail -f`. It keeps a circular buffer of items and supports
+derivatives and updates just like other collections.
 
 ```js
 methods.tail = function (n) {
