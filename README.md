@@ -93,12 +93,12 @@ For more details, check out the narrative tests for each data type and utility
 function:
 
 - [arrays](doc/array.md)
+- [functions](doc/fn.md)
 - [objects](doc/object.md)
 - [multiobjects](doc/multiobject.md)
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
 - [edges](doc/edge.md)
-- [functions](doc/fn.md)
 - [sorting](doc/sorting.md)
 - [awaiting](doc/await.md)
 
