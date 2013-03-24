@@ -19,21 +19,19 @@
 infuse.extend(function (infuse) {
 infuse.type('edge', function (edge, methods) {
 
-infuse.mixins.push(methods);
-
 // Edge state.
 // Edges maintain references to the objects they are connecting and the most
 // recent versions of those objects.
 
 methods.initialize = function (a, b, fab, fba) {
-  this.a_    = a;
-  this.b_    = b;
-  this.va_   = a.version();
-  this.vb_   = b.version();
-  this.size_ = 0;
+  this.a_   = a;
+  this.b_   = b;
+  this.va_  = a.version();
+  this.vb_  = b.version();
+  this.sig_ = infuse.signal();
 
-  this.ga_   = a.generator();
-  this.gb_   = b.generator();
+  this.ga_  = a.generator();
+  this.gb_  = b.generator();
 
   var self = this;
   fab = infuse.fn(fab);
@@ -45,7 +43,8 @@ methods.initialize = function (a, b, fab, fba) {
   this.gb_(this.from_b_, this.id());
 };
 
-methods.size = function () {return this.size_};
+methods.size    = function () {return this.sig_.size()};
+methods.version = function () {return this.sig_.version()};
 
 // Detachment.
 // Detaching an edge means removing its connection to both endpoints. You can't
@@ -59,12 +58,17 @@ methods.detach = function () {
   return this;
 };
 
+methods.detach_derivative = function (derivative) {
+  this.sig_.detach_derivative(derivative);
+  return this;
+};
+
 // Derivatives.
-// Edges don't support derivatives and don't provide generators. This makes some
-// sense, as an edge is defined by its connectedness to specific endpoints.
+// Edges derive signals that are triggered whenever a value travels along the
+// edge.
 
 methods.derivative = function (generator, version_base) {
-  throw new Error('infuse: cannot construct the derivative of an edge');
+  return this.sig_.derivative(generator, version_base);
 };
 
 methods.generator = function () {
@@ -95,12 +99,14 @@ methods.push = function (v, k) {
       sb = this.vb_;
 
   if (sa < va && sb >= vb)
+    this.sig_.push(v, k),
     b.push(v, k),                               // commit value to b
     this.gb_(this.from_b_, this.id()),          // pull updates
     this.vb_ = sb = b.version(),                // catch up to b
     this.va_ = sa = va;                         // enable propagation back to a
 
   if (sb < vb && sa >= va)
+    this.sig_.push(v, k),
     a.push(v, k),                               // commit value to a
     this.ga_(this.from_a_, this.id()),          // pull updates
     this.va_ = sa = a.version(),                // catch up to a

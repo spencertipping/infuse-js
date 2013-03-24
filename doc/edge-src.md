@@ -22,10 +22,6 @@ infuse.extend(function (infuse) {
 infuse.type('edge', function (edge, methods) {
 ```
 
-```js
-infuse.mixins.push(methods);
-```
-
 # Edge state
 
 Edges maintain references to the objects they are connecting and the most
@@ -33,16 +29,16 @@ recent versions of those objects.
 
 ```js
 methods.initialize = function (a, b, fab, fba) {
-  this.a_    = a;
-  this.b_    = b;
-  this.va_   = a.version();
-  this.vb_   = b.version();
-  this.size_ = 0;
+  this.a_   = a;
+  this.b_   = b;
+  this.va_  = a.version();
+  this.vb_  = b.version();
+  this.sig_ = infuse.signal();
 ```
 
 ```js
-  this.ga_   = a.generator();
-  this.gb_   = b.generator();
+  this.ga_  = a.generator();
+  this.gb_  = b.generator();
 ```
 
 ```js
@@ -60,7 +56,8 @@ methods.initialize = function (a, b, fab, fba) {
 ```
 
 ```js
-methods.size = function () {return this.size_};
+methods.size    = function () {return this.sig_.size()};
+methods.version = function () {return this.sig_.version()};
 ```
 
 # Detachment
@@ -78,14 +75,21 @@ methods.detach = function () {
 };
 ```
 
+```js
+methods.detach_derivative = function (derivative) {
+  this.sig_.detach_derivative(derivative);
+  return this;
+};
+```
+
 # Derivatives
 
-Edges don't support derivatives and don't provide generators. This makes some
-sense, as an edge is defined by its connectedness to specific endpoints.
+Edges derive signals that are triggered whenever a value travels along the
+edge.
 
 ```js
 methods.derivative = function (generator, version_base) {
-  throw new Error('infuse: cannot construct the derivative of an edge');
+  return this.sig_.derivative(generator, version_base);
 };
 ```
 
@@ -127,6 +131,7 @@ methods.push = function (v, k) {
 
 ```js
   if (sa < va && sb >= vb)
+    this.sig_.push(v, k),
     b.push(v, k),                               // commit value to b
     this.gb_(this.from_b_, this.id()),          // pull updates
     this.vb_ = sb = b.version(),                // catch up to b
@@ -135,6 +140,7 @@ methods.push = function (v, k) {
 
 ```js
   if (sb < vb && sa >= va)
+    this.sig_.push(v, k),
     a.push(v, k),                               // commit value to a
     this.ga_(this.from_a_, this.id()),          // pull updates
     this.va_ = sa = a.version(),                // catch up to a
