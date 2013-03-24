@@ -46,6 +46,8 @@ ifeq ($(UGLIFY), no)
 else
 %.min.js: %.js
 	grep -v '^\s*//' $< | uglifyjs > $@
+	@echo minified size: `wc -c < $@`
+	@echo min/gzip size: `gzip -c $@ | wc -c`
 endif
 
 gen/%.js: src/%.js.sdoc
