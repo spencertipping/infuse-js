@@ -1061,6 +1061,7 @@ infuse.fn.alternatives.push(
 //                              var result = /f(o)o/.exec(x);
 //                              return result && result[1];
 //                            }
+//   infuse.fn(/foo/g)     -> function (x) {return x.match(/foo/g) || []}
 
 // Regexps are most useful when used on sequences of strings:
 // `infuse(...).map(/f(.)o/)`.
@@ -1068,19 +1069,25 @@ infuse.fn.alternatives.push(
 infuse.fn.alternatives.push(
   {accepts:   function (x) {return x.constructor === RegExp},
    construct: function (regexp) {
-     return infuse.fn.regexp_group_count(regexp)
-       // We have match groups; return them as an array.
-       ? function (x) {
-           var result = regexp.exec(x);
-           return result && Array.prototype.slice.call(result, 1);
-         }
+     return infuse.fn.regexp_is_g(regexp)
+       ? function (x) {return regexp.match(x) || []}
+       : infuse.fn.regexp_group_count(regexp)
+         // We have match groups; return them as an array.
+         ? function (x) {
+             var result = regexp.exec(x);
+             return result && Array.prototype.slice.call(result, 1);
+           }
 
-       // No match groups; just return the matched string.
-       : function (x) {
-           var result = regexp.exec(x);
-           return result && result[0];
-         };
+         // No match groups; just return the matched string.
+         : function (x) {
+             var result = regexp.exec(x);
+             return result && result[0];
+           };
    }});
+
+infuse.fn.regexp_is_g = function (regexp) {
+  return /\/[^\/]*g[^\/]*$/.test(regexp.toString());
+};
 
 infuse.fn.regexp_group_count = function (regexp) {
   // Simple regexp parse: look for unescaped open-parens that aren't followed
@@ -2397,12 +2404,22 @@ methods.into = function (xs_or_constructor) {
   return this.into(infuse.apply(this, arguments)).get();
 };
 
+// Get shorthands.
 // Sometimes you have multiple nested Infuse objects (particularly with futures),
 // and you want to get to a primitive. You can do this with `fget`:
 
 methods.fget = function () {
   var result = this.get.apply(this, arguments);
   while (result instanceof infuse) result = result.get();
+  return result;
+};
+
+// You can also use `mget` to cascade multiple `get` arguments:
+
+methods.mget = function () {
+  var result = this;
+  for (var i = 0, l = arguments.length; i < l; ++i)
+    result = result.get(arguments[i]);
   return result;
 };
 

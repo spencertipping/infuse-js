@@ -79,12 +79,22 @@ methods.into = function (xs_or_constructor) {
   return this.into(infuse.apply(this, arguments)).get();
 };
 
+// Get shorthands.
 // Sometimes you have multiple nested Infuse objects (particularly with futures),
 // and you want to get to a primitive. You can do this with `fget`:
 
 methods.fget = function () {
   var result = this.get.apply(this, arguments);
   while (result instanceof infuse) result = result.get();
+  return result;
+};
+
+// You can also use `mget` to cascade multiple `get` arguments:
+
+methods.mget = function () {
+  var result = this;
+  for (var i = 0, l = arguments.length; i < l; ++i)
+    result = result.get(arguments[i]);
   return result;
 };
 

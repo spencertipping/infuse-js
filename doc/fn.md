@@ -54,25 +54,30 @@ var mapped = val.map(f);
 ```js
 mapped.size()                           -> 2
 mapped.get(0).get('foo')                -> 2
-mapped.get(0).get('bar').join(',')      -> '1,3'
-mapped.get(1).get('foo')                -> 3
-mapped.get(1).get('bar').join(',')      -> '2,4'
+```
+
+```js
+// mget(x, y, ...) = get(x).get(y)....
+mapped.mget(0, 'foo')                   -> 2
+mapped.mget(0, 'bar').join(',')         -> '1,3'
+mapped.mget(1, 'foo')                   -> 3
+mapped.mget(1, 'bar').join(',')         -> '2,4'
 ```
 
 At this point `mapped` is a *derivative of the function*:
 
 ```js
 o.push('"bif" + _', 'bif');
-mapped.get(0).get('bif')                -> 'bif1'
-mapped.get(1).get('bif')                -> 'bif2'
+mapped.mget(0, 'bif')                   -> 'bif1'
+mapped.mget(1, 'bif')                   -> 'bif2'
 ```
 
 It is also still a derivative of `val`:
 
 ```js
 val.push(3);
-mapped.get(2).get('foo')                -> 4
-mapped.get(2).get('bar').join(',')      -> '3,5'
-mapped.get(2).get('bif')                -> 'bif3'
+mapped.mget(2, 'foo')                   -> 4
+mapped.mget(2, 'bar').join(',')         -> '3,5'
+mapped.mget(2, 'bif')                   -> 'bif3'
 
 ```
