@@ -75,4 +75,38 @@ sig.push(6, 'bif')                              -> sig
 o.size()                                        -> 2
 ```
 
-The `from` method works just like `into` but 
+A useful idiom is to maintain a window of signal history using a tail. For
+example:
+
+```js
+var sig  = infuse.signal();
+var tail = sig.into(infuse.tail, 3);    // last 3 elements
+```
+
+```js
+tail.size()                                     -> 0
+sig.push('foo');
+tail.join(',')                                  -> 'foo'
+sig.push('bar').push('bif').push('baz');
+tail.join(',')                                  -> 'bar,bif,baz'
+```
+
+Tails are useful for limiting memory use when you have a potentially unbounded
+stream of values. But be careful what you do with them; if you group a tail,
+for instance, that grouping may store old values:
+
+```js
+var group = tail.group('_');
+group.size()                                    -> 3
+group.get('bar').length                         -> 1
+```
+
+```js
+sig.push('bok');
+tail.size()                                     -> 3
+group.size()                                    -> 4
+sig.push('bar');
+group.size()                                    -> 5
+group.get('bar').length                         -> 2
+
+```
