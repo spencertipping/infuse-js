@@ -257,9 +257,9 @@ methods.initial_ceiling_ = function (v, depth) {
 
 methods.get = function (k) {
   var map = this.map_;
-  return Object.prototype.hasOwnProperty.call(map, k)
-    ? this.xs_[map[k]]
-    : infuse.fn.apply(this, arguments)(this, this.id());
+  if (typeof k === typeof '' || k instanceof String)
+    return this.xs_[map[k]];
+  return this.get_default.apply(this, arguments);
 };
 
 methods.remove = function (k) {

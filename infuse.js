@@ -23,6 +23,13 @@
     };
 
     result.alternatives = [];
+    result.accepts = function (x) {
+      for (var xs = result.alternatives, i = xs.length - 1, t; i >= 0; --i)
+        if ((t = xs[i]).accepts.apply(t, arguments))
+          return true;
+      return false;
+    };
+
     return result;
   };
 
@@ -363,7 +370,7 @@ methods.generator = function () {
 methods.get = function () {
   this.pull();
   if (!arguments.length) return this.x_;
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.default_get.apply(this, arguments);
 };
 
 });
@@ -777,9 +784,9 @@ methods.initial_ceiling_ = function (v, depth) {
 
 methods.get = function (k) {
   var map = this.map_;
-  return Object.prototype.hasOwnProperty.call(map, k)
-    ? this.xs_[map[k]]
-    : infuse.fn.apply(this, arguments)(this, this.id());
+  if (typeof k === typeof '' || k instanceof String)
+    return this.xs_[map[k]];
+  return this.get_default.apply(this, arguments);
 };
 
 methods.remove = function (k) {
@@ -1383,8 +1390,7 @@ methods.get = function (n, fn) {
       return f(xs[i1], xs[i2], x);
     }
 
-  // get(...) = fn(...)(this, this.id())
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 methods.first = function (n) {
@@ -1515,7 +1521,7 @@ methods.get = function (n, fn) {
     if (n === n >> 0)
       return xs[(n + l + z) % l];
     else {
-      // interpolate
+      // circular interpolation
       var f  = arguments.length > 1
                ? infuse.fnarg(arguments, 1)
                : function (a, b, x) {return a + (b-a)*x},
@@ -1525,14 +1531,7 @@ methods.get = function (n, fn) {
       return f(xs[i1], xs[i2], x);
     }
 
-  // get([x1, x2, x3, ...]) = [get(x1), get(x2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = n.length; i < l; ++i) r.push(this.get(n[i]));
-    return r;
-  }
-
-  // get(...) = fn(...)(this, this.id())
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 });
@@ -1667,8 +1666,7 @@ methods.get = function (k) {
   // get(k) -> o[k]
   if (typeof k === typeof '' || k instanceof String) return o[k];
 
-  // get(...) = fn(...)(this, this.id())
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 
@@ -1803,8 +1801,7 @@ methods.get = function (k) {
   // get(k) -> o[k] (an Infuse array of values, or undefined)
   if (typeof k === typeof '' || k instanceof String) return o[k];
 
-  // get(...) = fn(...)(this)
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 });
@@ -1920,8 +1917,11 @@ methods.get = function (k) {
   if (k === void 0) return this.value_;
 
   // get(k) -> v if decided and k === key, otherwise null
-  if (k === this.key_) return this.value_;
-  else                 return null;
+  if (typeof k === typeof '' || k instanceof String)
+    if (k === this.key_) return this.value_;
+    else                 return null;
+
+  return this.get_default.apply(this, arguments);
 };
 
 // Callback interface.
@@ -2069,8 +2069,11 @@ methods.get = function (k) {
   if (k === void 0) return this.value_;
 
   // get(k) -> v if decided and k === key, otherwise null
-  if (k === this.key_) return this.value_;
-  else                 return null;
+  if (typeof k === typeof '' || k instanceof String)
+    if (k === this.key_) return this.value_;
+    else                 return null;
+
+  return this.default_get.apply(this, arguments);
 };
 
 // Callback interface.
@@ -2515,17 +2518,33 @@ methods.join = function (sep) {
 // and it generates derivative Infuse collections.
 
 methods.fn = function () {
-  var mapped = this.map(function (v, k) {
-    var f = infuse.fn(v);
-    return function (x) {
-      if (x instanceof infuse) return x.get(v);
-      else                     return f.apply(this, arguments);
-    };
-  });
+  var mapped = this.map(function (v, k) {return infuse.fn(v)});
   return function () {
     var self = this, args = arguments;
     return mapped.map(function (v, k) {return v.apply(self, args)});
   };
+};
+
+// Default `get` implementation.
+// This is what individual Infuse collections use when no collection-specific
+// alternatives match. It's written so that:
+
+// | infuse([1, 2, 3]).get([2, 1])         -> infuse([3, 2])
+//   infuse([1, 2, 3]).get({foo: 0})       -> infuse({foo: 1})
+
+// It also has desirable properties for working with asynchronous collections.
+
+methods.get_default = function (x) {
+  // get(infusable) -> infuse.map(x -> y -> y.get(x)).fn()(this, this.id())
+  if (infuse.accepts(x)) {
+    var self = this;
+    return infuse.fn(infuse(x).map(function (x) {
+      return function (y) {return y.get(x)};
+    }))(this, this.id());
+  }
+
+  // get(...) -> fn(...)(this, this.id())
+  return infuse.fn.apply(this, arguments)(this, this.id());
 };
 
 // Lazy sorting.

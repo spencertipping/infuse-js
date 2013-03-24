@@ -113,8 +113,7 @@ methods.get = function (k) {
   // get(k) -> o[k] (an Infuse array of values, or undefined)
   if (typeof k === typeof '' || k instanceof String) return o[k];
 
-  // get(...) = fn(...)(this)
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 });

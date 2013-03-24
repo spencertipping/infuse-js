@@ -126,8 +126,7 @@ methods.get = function (k) {
   // get(k) -> o[k]
   if (typeof k === typeof '' || k instanceof String) return o[k];
 
-  // get(...) = fn(...)(this, this.id())
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 

@@ -23,6 +23,13 @@
     };
 
     result.alternatives = [];
+    result.accepts = function (x) {
+      for (var xs = result.alternatives, i = xs.length - 1, t; i >= 0; --i)
+        if ((t = xs[i]).accepts.apply(t, arguments))
+          return true;
+      return false;
+    };
+
     return result;
   };
 

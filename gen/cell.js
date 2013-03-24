@@ -52,7 +52,7 @@ methods.generator = function () {
 methods.get = function () {
   this.pull();
   if (!arguments.length) return this.x_;
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.default_get.apply(this, arguments);
 };
 
 });

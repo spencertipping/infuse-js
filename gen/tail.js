@@ -77,7 +77,7 @@ methods.get = function (n, fn) {
     if (n === n >> 0)
       return xs[(n + l + z) % l];
     else {
-      // interpolate
+      // circular interpolation
       var f  = arguments.length > 1
                ? infuse.fnarg(arguments, 1)
                : function (a, b, x) {return a + (b-a)*x},
@@ -87,14 +87,7 @@ methods.get = function (n, fn) {
       return f(xs[i1], xs[i2], x);
     }
 
-  // get([x1, x2, x3, ...]) = [get(x1), get(x2), ...]
-  if (n instanceof Array) {
-    for (var r = [], i = 0, l = n.length; i < l; ++i) r.push(this.get(n[i]));
-    return r;
-  }
-
-  // get(...) = fn(...)(this, this.id())
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 });

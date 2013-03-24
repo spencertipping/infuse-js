@@ -107,8 +107,11 @@ methods.get = function (k) {
   if (k === void 0) return this.value_;
 
   // get(k) -> v if decided and k === key, otherwise null
-  if (k === this.key_) return this.value_;
-  else                 return null;
+  if (typeof k === typeof '' || k instanceof String)
+    if (k === this.key_) return this.value_;
+    else                 return null;
+
+  return this.get_default.apply(this, arguments);
 };
 
 // Callback interface.

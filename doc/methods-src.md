@@ -252,17 +252,38 @@ and it generates derivative Infuse collections.
 
 ```js
 methods.fn = function () {
-  var mapped = this.map(function (v, k) {
-    var f = infuse.fn(v);
-    return function (x) {
-      if (x instanceof infuse) return x.get(v);
-      else                     return f.apply(this, arguments);
-    };
-  });
+  var mapped = this.map(function (v, k) {return infuse.fn(v)});
   return function () {
     var self = this, args = arguments;
     return mapped.map(function (v, k) {return v.apply(self, args)});
   };
+};
+```
+
+# Default `get` implementation
+
+This is what individual Infuse collections use when no collection-specific
+alternatives match. It's written so that:
+
+    infuse([1, 2, 3]).get([2, 1])         -> infuse([3, 2])
+    infuse([1, 2, 3]).get({foo: 0})       -> infuse({foo: 1})
+
+It also has desirable properties for working with asynchronous collections.
+
+```js
+methods.get_default = function (x) {
+  // get(infusable) -> infuse.map(x -> y -> y.get(x)).fn()(this, this.id())
+  if (infuse.accepts(x)) {
+    var self = this;
+    return infuse.fn(infuse(x).map(function (x) {
+      return function (y) {return y.get(x)};
+    }))(this, this.id());
+  }
+```
+
+```js
+  // get(...) -> fn(...)(this, this.id())
+  return infuse.fn.apply(this, arguments)(this, this.id());
 };
 ```
 

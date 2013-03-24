@@ -145,8 +145,7 @@ methods.get = function (k) {
 ```
 
 ```js
-  // get(...) = fn(...)(this)
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 ```
 

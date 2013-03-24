@@ -115,8 +115,7 @@ methods.get = function (n, fn) {
       return f(xs[i1], xs[i2], x);
     }
 
-  // get(...) = fn(...)(this, this.id())
-  return infuse.fn.apply(this, arguments)(this, this.id());
+  return this.get_default.apply(this, arguments);
 };
 
 methods.first = function (n) {
