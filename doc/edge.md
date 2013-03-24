@@ -211,5 +211,56 @@ b.get()                         -> 'bar'
 a.push(144);
 gate_ab.push(288);
 b.get()                         -> 288
+```
+
+Each edge has a keygate that you can use to filter the values that it
+propagates. For example:
+
+```js
+var a = infuse.signal();
+var b = infuse.signal();
+var e = a.to(b);
+```
+
+```js
+e.keygate(/foo/);
+```
+
+```js
+a.push(5, 'bar');
+a.get()                         -> 5
+a.key()                         -> 'bar'
+b.get()                         -> null
+b.key()                         -> null
+```
+
+```js
+a.push(6, 'foo');
+a.get()                         -> 6
+a.key()                         -> 'foo'
+b.get()                         -> 6
+b.key()                         -> 'foo'
+```
+
+You can change the keygate dynamically:
+
+```js
+e.keygate(/bar/);
+```
+
+```js
+b.push(4, 'bar');
+a.get()                         -> 4
+a.key()                         -> 'bar'
+b.get()                         -> 4
+b.key()                         -> 'bar'
+```
+
+```js
+b.push(5, 'foo');
+a.get()                         -> 4
+a.key()                         -> 'bar'
+b.get()                         -> 5
+b.key()                         -> 'foo'
 
 ```

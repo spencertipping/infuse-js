@@ -29,27 +29,33 @@ recent versions of those objects.
 
 ```js
 methods.initialize = function (a, b, fab, fba) {
-  this.a_   = a;
-  this.b_   = b;
-  this.va_  = a.version();
-  this.vb_  = b.version();
-  this.sig_ = infuse.signal();
+  this.a_       = a;
+  this.b_       = b;
+  this.ga_      = a.generator();
+  this.gb_      = b.generator();
+  this.va_      = a.version();
+  this.vb_      = b.version();
+  this.sig_     = infuse.signal();
+  this.gate_    = infuse.signal();
+  this.keygate_ = this.gate_.map(infuse.keygate);
 ```
 
 ```js
-  this.ga_  = a.generator();
-  this.gb_  = b.generator();
+  this.gate_.push(null);
 ```
 
 ```js
-  var self = this;
   fab = infuse.fn(fab);
   fba = infuse.fn(fba);
 ```
 
 ```js
+  var self = this;
   this.from_a_ = function (v, k) {return self.push(fab(v, k), k)};
   this.from_b_ = function (v, k) {return self.push(fba(v, k), k)};
+```
+
+```js
   this.ga_(this.from_a_, this.id());
   this.gb_(this.from_b_, this.id());
 };
@@ -58,6 +64,29 @@ methods.initialize = function (a, b, fab, fba) {
 ```js
 methods.size    = function () {return this.sig_.size()};
 methods.version = function () {return this.sig_.version()};
+```
+
+# Gating
+
+You can specify which kinds of keys propagate along the edge in two ways. The
+simplest way is to call `keygate()`. If you invoke it with no arguments, it
+will return the current compiled keygate.
+
+```js
+methods.keygate = function (gate) {
+  if (arguments.length) {
+    this.gate_.push(gate);
+    return this;
+  } else
+    return this.keygate_.get();
+};
+```
+
+The other way is to push a value into the `gate` signal. This is useful when
+you want to use edges to manage the keygates of other edges.
+
+```js
+methods.gate = function () {return this.gate_};
 ```
 
 # Detachment
@@ -123,6 +152,11 @@ methods.push = function (v, k) {
   infuse.assert(a && b,
     'infuse: cannot push to an edge with undefined endpoints (this '
   + 'happens if you call push() on an edge after detaching it)');
+```
+
+```js
+  if (!this.keygate_.get()(k))
+    return this;
 ```
 
 ```js
