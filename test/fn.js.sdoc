@@ -41,11 +41,9 @@ var mapped = val.map(f);
 
 mapped.size()                           -> 2
 mapped.get(0).get('foo')                -> 2
-mapped.get(0).get('bar').get(0)         -> 1
-mapped.get(0).get('bar').get(1)         -> 3
+mapped.get(0).get('bar').join(',')      -> '1,3'
 mapped.get(1).get('foo')                -> 3
-mapped.get(1).get('bar').get(0)         -> 2
-mapped.get(1).get('bar').get(1)         -> 4
+mapped.get(1).get('bar').join(',')      -> '2,4'
 
 At this point `mapped` is a *derivative of the function*:
 
@@ -57,6 +55,5 @@ It is also still a derivative of `val`:
 
 val.push(3);
 mapped.get(2).get('foo')                -> 4
-mapped.get(2).get('bar').get(0)         -> 3
-mapped.get(2).get('bar').get(1)         -> 5
+mapped.get(2).get('bar').join(',')      -> '3,5'
 mapped.get(2).get('bif')                -> 'bif3'
