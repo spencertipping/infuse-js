@@ -120,6 +120,12 @@ methods.mapfilter = function (fn) {
   });
 };
 
+For convenience:
+
+methods.join = function (sep) {
+  return this.values().get().join(sep);
+};
+
 Lazy sorting.
 You can sort the values in any Infuse object and the result will be updated
 lazily. Generators that traverse sorted objects will remember the last value
@@ -247,6 +253,16 @@ modified to be the indexes at which the elements are emitted.
 methods.tail = function (n) {
   var g = this.generator();
   return infuse.tail(n, g, this);
+};
+
+Edges.
+You can make an edge between any two objects by using the `to` function. You're
+required to specify an object to connect the receiver to, and you can
+optionally specify two functions, one to transform values in each direction.
+`ifn` is not required to be the inverse of `fn`, but it probably should be.
+
+methods.to = function (o, fn, ifn) {
+  return infuse.edge(this, o, fn, ifn);
 };
 
 });

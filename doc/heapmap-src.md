@@ -220,7 +220,9 @@ methods.next_ceiling_ = function (v, i, depth) {
 
 ```js
   var xs = this.xs_, l = xs.length;
-  if (i + 1 >= l) i >>>= 1;                     // jagged leaves; move up
+  if (i + 1 >= l)                               // we may be on a jagged leaf
+    if (!((i >>>= 1) & i + 1))                  // ... but if not, then
+      return null;                              // ... we're done
 ```
 
 Are we moving from a left to a right child? If so, we know we can't go up since
@@ -228,7 +230,7 @@ otherwise the left child wouldn't have been the topmost ceiling.
 
 ```js
   var search_upwards = i & 1;                   // right child before moving?
-  i++;                                          // if so, now we're at a left
+  ++i;                                          // if so, now we're at a left
 ```
 
 At this point we're at a node that may or may not be top-enough to be a valid
@@ -237,8 +239,7 @@ ceiling. Handle the easy case first:
 ```js
   if (this.above_(v, xs[i]))
     // The node is a valid ceiling, so up-search if necessary and return it.
-    return search_upwards ? this.topmost_ceiling_(v, i, depth)
-                          : i;
+    return search_upwards ? this.topmost_ceiling_(v, i, depth) : i;
 ```
 
 This case is more interesting. The new node isn't a valid ceiling, so we need

@@ -4,7 +4,7 @@ INFUSE_JS_DEPS = gen/infuse.js \
 		 gen/funnel.js gen/cell.js \
 		 gen/util.js gen/heapmap.js gen/cache.js gen/fn.js \
 		 gen/array.js gen/tail.js gen/object.js gen/multiobject.js \
-		 gen/future.js gen/signal.js \
+		 gen/future.js gen/signal.js gen/edge.js \
 		 gen/methods.js
 
 INFUSE_TESTS = $(patsubst test/%.js.sdoc,gen/%-test.js,$(wildcard test/*))

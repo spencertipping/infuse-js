@@ -32,7 +32,7 @@ var ys = xs.derivative(function (emit) {
 
 ys.size()                               -> 3
 ys.version()                            -> 4
-ys.get().join(',')                      -> '1,2,3'
+ys.join(',')                            -> '1,2,3'
 
 This is how almost all of the transformation methods work. For example, here's
 how `map` is implemented:
@@ -47,4 +47,4 @@ var mapped = xs.derivative(function (emit) {
 
 mapped.size()                           -> 3
 mapped.version()                        -> 4
-mapped.get().join(',')                  -> '3,6,9'
+mapped.join(',')                        -> '3,6,9'

@@ -69,10 +69,10 @@ zero counter as an array index and behave as if we were an array.
 methods.generator = function () {
   var i = 0, self = this;
   return function (emit) {
-    var l = self.zero_;
-    i = Math.max(i, l - xs.length);
-    for (var xs = self.pull().xs_; i < l;)
-      if (emit(xs[i], i++) === false) return false;
+    var l = self.zero_, xs = self.pull().xs_, m = xs.length;
+    i = Math.max(i, l - m);
+    for (; i < l;)
+      if (emit(xs[i % m], i++) === false) return false;
   };
 };
 ```

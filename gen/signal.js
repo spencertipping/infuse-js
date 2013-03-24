@@ -62,17 +62,22 @@ methods.generator = function () {
   return g;
 };
 
+// Order of operations matters inside `push`. We need to increment the version
+// before alerting listeners so that listeners can use version deltas to figure
+// out which of potentially many signals emitted a value.
+
 methods.push = function (v, k) {
-  // Alert listeners...
+  // Update state to reflect the change...
+  this.value_ = v;
+  this.key_   = k;
+  ++this.size_;
+
+  // ... and alert listeners.
   var ls = this.listeners_;
   for (var id in ls)
     if (Object.prototype.hasOwnProperty.call(ls, id))
       ls[id](v, k);
 
-  // ... then track the signal's current state
-  this.value_ = v;
-  this.key_   = k;
-  ++this.size_;
   return this;
 };
 

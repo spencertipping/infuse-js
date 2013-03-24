@@ -220,6 +220,16 @@ infuse.fn.alternatives.push(
    construct: function (x) {return x}});
 ```
 
+# Identity function
+
+Infuse promotes `null` and `undefined` into the identity function.
+
+```js
+infuse.fn.alternatives.push(
+  {accepts:   function (x) {return x == null},
+   construct: function (x) {return function (x) {return x}}});
+```
+
 ```js
 });
 
