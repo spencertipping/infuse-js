@@ -15,6 +15,14 @@ o.get('bar').join(',')          -> '1'
 
 o.size()                        -> 3
 
+var i = o.inverse();
+i.get('1').join(',')            -> 'foo,bar'
+i.get('2').join(',')            -> 'foo'
+i.size()                        -> 3
+
+o.push(2, 'bif');
+i.get('2').join(',')            -> 'foo,bif'
+
 Multiobjects are generated when you `group` a collection. For example:
 
 var xs = infuse([1, 2, 3, 4, 5, 6]);

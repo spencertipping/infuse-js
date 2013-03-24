@@ -115,7 +115,7 @@ methods.generator = function () {
   return function (emit) {
     // Expand each value-array and invoke emit() multiple times per key
     return journal_generator(function (v, k) {
-      for (var i = 0, xs = o[k], l = v.length; i < l; ++i)
+      for (var i = 0, xs = o[k], l = xs.length; i < l; ++i)
         if (emit(xs[i], k) === false) return false;
     });
   };

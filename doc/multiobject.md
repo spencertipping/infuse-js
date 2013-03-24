@@ -24,6 +24,18 @@ o.get('bar').join(',')          -> '1'
 o.size()                        -> 3
 ```
 
+```js
+var i = o.inverse();
+i.get('1').join(',')            -> 'foo,bar'
+i.get('2').join(',')            -> 'foo'
+i.size()                        -> 3
+```
+
+```js
+o.push(2, 'bif');
+i.get('2').join(',')            -> 'foo,bif'
+```
+
 Multiobjects are generated when you `group` a collection. For example:
 
 ```js

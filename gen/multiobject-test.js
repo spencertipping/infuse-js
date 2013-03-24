@@ -15,6 +15,14 @@ infuse.assert_equal((o.get('bar').join(',')          ), ('1'));
 
 infuse.assert_equal((o.size()                        ), (3));
 
+var i = o.inverse();
+infuse.assert_equal((i.get('1').join(',')            ), ('foo,bar'));
+infuse.assert_equal((i.get('2').join(',')            ), ('foo'));
+infuse.assert_equal((i.size()                        ), (3));
+
+o.push(2, 'bif');
+infuse.assert_equal((i.get('2').join(',')            ), ('foo,bif'));
+
 // Multiobjects are generated when you `group` a collection. For example:
 
 var xs = infuse([1, 2, 3, 4, 5, 6]);
