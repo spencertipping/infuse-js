@@ -12,7 +12,7 @@ haven't yet checked out the *totally epic* builtin types:
 - [arrays](doc/array.md)
 - [objects](doc/object.md)
 - [multiobjects](doc/multiobject.md)
-- [functions](doc/fn.md)
+- [functions](doc/fn.md) (warning: unfathomably awesome)
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
 - [edges](doc/edge.md)
