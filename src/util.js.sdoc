@@ -6,6 +6,47 @@ This module defines global functions on the `infuse` global.
 
 infuse.extend(function (infuse) {
 
+Future constructors.
+Futures can be hard to work with on their own, so Infuse gives you some ways of
+wrapping them and combining their values.
+
+infuse.immediate = function (v, k) {return infuse.future().push(v, k)};
+
+The `await` function is most useful when you have multiple futures running
+concurrently and want to wait for all of them to come back. It takes an object,
+array, or Infuse collection whose values may include futures and returns a
+future of a similarly-structured result whose values are all non-futures. That
+is, it transposes the future-ness of the values of some collection across the
+collection itself.
+
+Note that awaiting a collection of futures ignores the futures' keys.
+
+infuse.await = function (xs) {
+  var wrapped   = xs === (xs = infuse(xs)),
+      root      = infuse.immediate([]),
+      collector = xs.pairs().detach().reduce(root, function (f, p) {
+        var v = p[0], k = p[1];
+        return v instanceof infuse.future || v instanceof infuse.signal
+          ? f.first().flatmap(function (pairs) {
+              v.map(function (v) {
+                pairs.push([v, k]);
+                return pairs;
+              });
+            })
+          : f.first().map(function (pairs) {
+              pairs.push([v, k]);
+              return pairs;
+            });
+      });
+
+  return collector.map(function (pairs) {
+    var g = infuse(pairs).generator();
+    return xs.derivative(function (emit, id) {
+      g(function (pair) {return emit(pair[0], pair[1])});
+    });
+  });
+};
+
 Internal functions.
 These are generally just used by Infuse.
 

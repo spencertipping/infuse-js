@@ -84,13 +84,13 @@ function:
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
 - [edges](doc/edge.md)
-- [fn](doc/fn.md)
+- [functions](doc/fn.md)
+- [sorting](doc/sorting.md)
 
 Also useful:
 
 - [methods supported by all types](doc/methods-src.md)
 - [global utility functions](doc/util-src.md)
-- [sorting](doc/sorting.md)
 
 And the low-level stuff:
 
@@ -109,6 +109,7 @@ Annotated source:
 - [future](doc/future-src.md)
 - [heapmap](doc/heapmap-src.md)
 - [infuse](doc/infuse-src.md)
+- [keygate](doc/keygate-src.md)
 - [methods](doc/methods-src.md)
 - [mixin-pull](doc/mixin-pull-src.md)
 - [mixin-push](doc/mixin-push-src.md)

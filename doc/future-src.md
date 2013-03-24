@@ -109,6 +109,7 @@ methods.push = function (v, k) {
 ```
 
 ```js
+  this.detach();
   this.listeners_ = null;       // ... and then free them; we are now immutable
   this.value_     = v;
   this.key_       = k;
@@ -141,28 +142,51 @@ that will trigger the future when you invoke it. Each of these use cases ties a
 key to the callback, which is useful for things like error processing. See the
 future tests for examples.
 
-If `target` is not a string, it is assumed to be a function that can be
-promoted with `infuse.fn`. This is useful when you want to capture all
-outcomes: `on(/.*/, callback_fn)`.
-
 ```js
-methods.on = function (target, callback) {
-  var f = typeof target === typeof '' || target instanceof String
-          ? function (x) {return x === target}
-          : infuse.fn(target);
+methods.on = function (keygate, callback, id) {
+  keygate = infuse.keygate(keygate);
 ```
 
 ```js
-  this.generator()(function (v, k) {if (f(k)) callback(v, k)},
-                   infuse.gen_id());
+  // on(keygate) -> signal
+  if (!callback) {
+    var g = this.generator();
+    return infuse.signal(function (emit, id) {
+      g(function (v, k) {if (keygate(k)) return emit(v, k)}, id);
+    }, this);
+  }
+```
+
+```js
+  // on(keygate, callback) -> this
+  this.generator()(function (v, k) {if (keygate(k)) callback(v, k)},
+                   id || infuse.gen_id());
   return this;
 };
 ```
 
+Futures can be resolved at most once, so these methods do the same thing. (But
+this is not the case for signals.)
+
 ```js
-// Futures can be resolved at most once, so these methods do the same thing.
-// (But this is not the case for signals.)
-methods.once = methods.on;
+methods.once = function (keygate, callback, id) {
+  keygate = infuse.keygate(keygate);
+```
+
+```js
+  // once(keygate) -> future
+  if (!callback) {
+    var g = this.generator();
+    return this.derivative(function (emit, id) {
+      g(function (v, k) {if (keygate(k)) return emit(v, k)}, id);
+    });
+  }
+```
+
+```js
+  // once(keygate, callback) -> this
+  return this.on(keygate, callback, id);
+};
 ```
 
 ```js

@@ -98,29 +98,44 @@ methods.get = function (k) {
 // You can use a signal to invoke a callback, and you can also create a callback
 // that will trigger the signal when you invoke it.
 
-methods.on = function (target, callback) {
-  var f = typeof target === typeof '' || target instanceof String
-          ? function (x) {return x === target}
-          : infuse.fn(target);
+methods.on = function (keygate, callback, id) {
+  keygate = infuse.keygate(keygate);
 
-  this.generator()(function (v, k) {if (f(k)) callback(v, k)},
-                   infuse.gen_id());
+  // on(keygate) -> signal
+  if (!callback) {
+    var g = this.generator();
+    return this.derivative(function (emit, id) {
+      g(function (v, k) {if (keygate(k)) return emit(v, k)}, id);
+    }, this);
+  }
+
+  // on(keygate, callback) -> this
+  this.generator()(function (v, k) {if (keygate(k)) callback(v, k)},
+                   id || infuse.gen_id());
   return this;
 };
 
 // Similar to `on` is `once`, which creates a callback that is invoked only once
 // and then removed from the listener list. This can prevent a space leak for
-// cases where you need transient anonymous listeners.
+// cases where you need transient anonymous listeners. Invoked without a callback,
+// `once` returns a future that is triggered on the receiver's first value.
 
-methods.once = function (target, callback) {
-  var f    = typeof target === typeof '' || target instanceof String
-             ? function (x) {return x === target}
-             : infuse.fn(target),
-      id   = infuse.gen_id(),
-      self = this;
+methods.once = function (keygate, callback, id) {
+  id = id || infuse.gen_id();
+  keygate = infuse.keygate(keygate);
 
+  // once(keygate) -> future
+  if (!callback) {
+    var g = this.generator();
+    return infuse.future(function (emit, id) {
+      g(function (v, k) {if (keygate(k)) return emit(v, k)}, id);
+    }, this);
+  }
+
+  // once(keygate, callback) -> this
+  var self = this;
   this.generator()(function (v, k) {
-                     if (f(k)) {
+                     if (keygate(k)) {
                        delete self.listeners_[id];
                        callback(v, k);
                      }
