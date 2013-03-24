@@ -120,7 +120,7 @@ cases where you need transient anonymous listeners. Invoked without a callback,
 `once` returns a future that is triggered on the receiver's first value.
 
 methods.once = function (keygate, callback, id) {
-  id = id || infuse.gen_id();
+  id      = id || infuse.gen_id();
   keygate = infuse.keygate(keygate);
 
   // once(keygate) -> future

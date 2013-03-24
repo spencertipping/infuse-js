@@ -182,10 +182,10 @@ instanceof Object` because everything is an instance of `Object`. Long story
 short, we have to rely on `Object.prototype.toString` to tell us.
 
 ```js
-var obj_to_string = Object.prototype.toString.call({});
+var obj_tos = Object.prototype.toString.call({});
 infuse.alternatives.push(
-  {accepts:   function (x) {return Object.prototype.toString.call(x) ===
-                                   obj_to_string},
+  {accepts:   function (x) {return Object.prototype.toString.call(x) === obj_tos
+                                && !(x instanceof infuse)},
    construct: function (x) {return infuse.object(x)}});
 ```
 

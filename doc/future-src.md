@@ -78,6 +78,13 @@ methods.derivative = function (generator, version_base) {
 };
 ```
 
+Future generators support ID-less emit function registrations. Signals don't
+because a signal will hold onto such a function indefinitely, but futures let
+go of the functions once they are decided, so the scope of the space leak is
+less egregious. It's still a better idea to use `on` or `once` to get a
+singleton future that you use for the callback; that way you can free both by
+calling `detach`.
+
 ```js
 methods.generator = function () {
   var g = this.generator_;

@@ -391,15 +391,22 @@ infuse.immediate = function (v, k) {return infuse.future().push(v, k)};
 // is, it transposes the future-ness of the values of some collection across the
 // collection itself.
 
-// Note that awaiting a collection of futures ignores the futures' keys.
+// Note that awaiting a collection of futures ignores the futures' keys. You can
+// specify a keygate, however.
 
-infuse.await = function (xs) {
+infuse.await = function (xs, keygate) {
   var wrapped   = xs === (xs = infuse(xs)),
+      keygate   = infuse.keygate(keygate),
       root      = infuse.immediate(xs.zero()),
       collector = xs.reduce(root, function (base, v, k) {
         return v instanceof infuse.future || v instanceof infuse.signal
           ? base.flatmap(function (result) {
-              return v.once().map(function (v) {return result.push(v, k)});
+              // once() is used to collapse signals into futures. More than one
+              // result would trigger an error, since we're flatmapping into a
+              // future.
+              return v.once(keygate).map(function (v) {
+                return result.push(v, k);
+              });
             })
           : base.map(function (result) {return result.push(v, k)});
       });
@@ -411,10 +418,38 @@ infuse.await = function (xs) {
 
 // Similar to `await` is `progress`, which gives you a signal of reductions as the
 // individual futures complete. It supports signal values, not just future values,
-// and the reduction is updated each time of the signals changes.
+// and the reduction is updated each time one of the signals changes. You can
+// think of `await` as intersecting futures/signals and `progress` as unioning
+// them.
 
-infuse.progress = function (xs) {
-  var wrapped = xs === (xs = infuse(xs));
+infuse.progress = function (xs, keygate) {
+  var wrapped = xs === (xs = infuse(xs)),
+      keygate = infuse.keygate(keygate),
+      root    = infuse.signal().push(xs.zero()),
+      union   = xs.reduce(root, function (base, v, k) {
+        var f = v instanceof infuse.future || v instanceof infuse.signal
+                ? v
+                : infuse.immediate(v);
+        f.generator()(function (v, inner_k) {base.push(base.get().push(v, k))},
+                      base.id());
+        return base;
+      });
+
+  return union.map(function (result) {
+    return wrapped ? result : result.get();
+  });
+};
+
+// Ordering functions.
+// These are useful when you're sorting things. All elements are considered
+// distinct for orderings, so a ≮ a.
+
+infuse.comparator_to_ordering = function (comparator) {
+  return function (x, y) {return comparator(x, y) < 0};
+};
+
+infuse.comparator_from_ordering = function (ordering) {
+  return function (x, y) {return ordering(x, y) ? -1 : 1};
 };
 
 // Internal functions.
@@ -1610,10 +1645,10 @@ methods.get = function (k) {
 // instanceof Object` because everything is an instance of `Object`. Long story
 // short, we have to rely on `Object.prototype.toString` to tell us.
 
-var obj_to_string = Object.prototype.toString.call({});
+var obj_tos = Object.prototype.toString.call({});
 infuse.alternatives.push(
-  {accepts:   function (x) {return Object.prototype.toString.call(x) ===
-                                   obj_to_string},
+  {accepts:   function (x) {return Object.prototype.toString.call(x) === obj_tos
+                                && !(x instanceof infuse)},
    construct: function (x) {return infuse.object(x)}});
 
 });
@@ -1809,6 +1844,13 @@ methods.derivative = function (generator, version_base) {
   var f = infuse.fn.apply(this, arguments);
   return infuse.future(f, version_base || this);
 };
+
+// Future generators support ID-less emit function registrations. Signals don't
+// because a signal will hold onto such a function indefinitely, but futures let
+// go of the functions once they are decided, so the scope of the space leak is
+// less egregious. It's still a better idea to use `on` or `once` to get a
+// singleton future that you use for the callback; that way you can free both by
+// calling `detach`.
 
 methods.generator = function () {
   var g = this.generator_;
@@ -2029,7 +2071,7 @@ methods.on = function (keygate, callback, id) {
 // `once` returns a future that is triggered on the receiver's first value.
 
 methods.once = function (keygate, callback, id) {
-  id = id || infuse.gen_id();
+  id      = id || infuse.gen_id();
   keygate = infuse.keygate(keygate);
 
   // once(keygate) -> future
@@ -2256,14 +2298,15 @@ methods.inverse = function () {
 
 methods.into = function (xs_or_constructor) {
   if (typeof xs_or_constructor === typeof infuse) {     // constructor function?
-    var args = infuse.slice(arguments, 1);
-    args.push(this.generator());
+    var args = infuse.slice(arguments, 1);              // get extra args
+    args.push(this.generator());                        // set up derivative
     args.push(this);
     return xs_or_constructor.apply(infuse, args);
   }
 
   if (xs_or_constructor instanceof infuse) {            // wrapped already?
-    this.generator()(function (v, k) {xs_or_constructor.push(v, k)});
+    this.generator()(function (v, k) {xs_or_constructor.push(v, k)},
+                     xs_or_constructor.id());
     return xs_or_constructor;
   }
 
@@ -2295,7 +2338,7 @@ methods.pairs = function () {
 methods.unpair = function (pairs) {
   var g    = infuse(pairs).generator(),
       self = this;
-  g(function (pair) {self.push(pair[0], pair[1])});
+  g(function (pair) {self.push(pair[0], pair[1])}, this.id());
   return this;
 };
 
@@ -2314,10 +2357,8 @@ methods.zero = function () {
 
 // Traversal.
 // The generator order can be used to define `each`; we just throw the generator
-// away at the end. If you invoke `each` on an asynchronous collection, the
-// iterator function will be invoked at some point in the future. You may prefer
-// the `on` and `once` methods on futures and signals if you want finer-grained
-// control over asynchronous callback behavior.
+// away at the end. It is generally an error to invoke `each` on an asynchronous
+// collection; you should use `on` or `once` instead.
 
 methods.each = function (fn) {
   var f = infuse.fn.apply(this, arguments);
@@ -2350,7 +2391,7 @@ methods.flatmap = function (fn) {
       g = this.generator();
   return this.derivative(function (emit, id) {
     g(function (v, k) {var y = f(v, k);
-                       return y && infuse(y).each(emit)}, id);
+                       return y && infuse(y).generator()(emit, id)}, id);
   });
 };
 
@@ -2391,9 +2432,19 @@ methods.join = function (sep) {
 // re-entrances, k is the number of realized elements, and n is the size of the
 // receiver.
 
-// These functions have a fairly large constant-factor overhead. You're much
-// better off using Javascript's native `sort()` method unless you need lazy
-// sorting.
+// These functions have a fairly large constant-factor overhead. You're probably
+// better off using Javascript's native `sort()` method if performance is
+// important. (Actually, don't use Infuse at all if you're counting microseconds;
+// it's fast, but indirection is indirection.)
+
+// Note that multi-objects cannot be sorted meaningfully; you'll get a multiobject
+// with a different structure. This problem arises because the key->value
+// transform of a multiobject is not a well-defined function.
+
+// Also note that this `sort` function is unstable, so it takes an ordering
+// function that returns `true` if its first argument is less than the second,
+// `false` otherwise. You can get such a function from a comparator by using
+// `infuse.comparator_to_ordering`.
 
 methods.sort = function (fn) {
   var f    = fn && infuse.fn.apply(this, arguments),
@@ -2405,8 +2456,21 @@ methods.sort = function (fn) {
   }, h);
 };
 
+// Sort-by allocates a backing collection of transformed values, sorts that, and
+// remaps the keys back into the original collection's space. This means that your
+// base collection must support `get` over its keyspace.
+
 methods.sortby = function (fn) {
-  return this.map.apply(this, arguments).sort();
+  var f    = infuse.fn.apply(this, arguments),
+      sg   = this.generator(),
+      h    = infuse.heapmap(null, function (emit, id) {
+               sg(function (v, k) {return emit(f(v, k), k)}, id);
+             }, this),
+      g    = h.generator(),
+      self = this;
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(self.get(k), k)}, id);
+  }, h);
 };
 
 // The `uniq` method returns distinct values **from a sorted collection**. Because
@@ -2513,6 +2577,11 @@ methods.tail = function (n) {
 // required to specify an object to connect the receiver to, and you can
 // optionally specify two functions, one to transform values in each direction.
 // `ifn` is not required to be the inverse of `fn`, but it probably should be.
+
+// Edges are legal between synchronous collections; in that case, it is up to you
+// to call `pull` on the edge to manually propagate changes in either direction.
+// See the [edge documentation](edge.md) and [source](edge-src.md) for more
+// details about this.
 
 methods.to = function (o, fn, ifn) {
   return infuse.edge(this, o, fn, ifn);

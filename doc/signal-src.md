@@ -158,7 +158,7 @@ cases where you need transient anonymous listeners. Invoked without a callback,
 
 ```js
 methods.once = function (keygate, callback, id) {
-  id = id || infuse.gen_id();
+  id      = id || infuse.gen_id();
   keygate = infuse.keygate(keygate);
 ```
 

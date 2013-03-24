@@ -72,8 +72,8 @@ You can't use `into` to modify a derivative; doing so will result in an error.
 ```js
 methods.into = function (xs_or_constructor) {
   if (typeof xs_or_constructor === typeof infuse) {     // constructor function?
-    var args = infuse.slice(arguments, 1);
-    args.push(this.generator());
+    var args = infuse.slice(arguments, 1);              // get extra args
+    args.push(this.generator());                        // set up derivative
     args.push(this);
     return xs_or_constructor.apply(infuse, args);
   }
@@ -81,7 +81,8 @@ methods.into = function (xs_or_constructor) {
 
 ```js
   if (xs_or_constructor instanceof infuse) {            // wrapped already?
-    this.generator()(function (v, k) {xs_or_constructor.push(v, k)});
+    this.generator()(function (v, k) {xs_or_constructor.push(v, k)},
+                     xs_or_constructor.id());
     return xs_or_constructor;
   }
 ```
@@ -120,7 +121,7 @@ the values.)
 methods.unpair = function (pairs) {
   var g    = infuse(pairs).generator(),
       self = this;
-  g(function (pair) {self.push(pair[0], pair[1])});
+  g(function (pair) {self.push(pair[0], pair[1])}, this.id());
   return this;
 };
 ```
@@ -146,10 +147,8 @@ methods.zero = function () {
 # Traversal
 
 The generator order can be used to define `each`; we just throw the generator
-away at the end. If you invoke `each` on an asynchronous collection, the
-iterator function will be invoked at some point in the future. You may prefer
-the `on` and `once` methods on futures and signals if you want finer-grained
-control over asynchronous callback behavior.
+away at the end. It is generally an error to invoke `each` on an asynchronous
+collection; you should use `on` or `once` instead.
 
 ```js
 methods.each = function (fn) {
@@ -190,7 +189,7 @@ methods.flatmap = function (fn) {
       g = this.generator();
   return this.derivative(function (emit, id) {
     g(function (v, k) {var y = f(v, k);
-                       return y && infuse(y).each(emit)}, id);
+                       return y && infuse(y).generator()(emit, id)}, id);
   });
 };
 ```
@@ -239,9 +238,19 @@ lazily sorted in O(r k log n) time, where r is the number of generator
 re-entrances, k is the number of realized elements, and n is the size of the
 receiver.
 
-These functions have a fairly large constant-factor overhead. You're much
-better off using Javascript's native `sort()` method unless you need lazy
-sorting.
+These functions have a fairly large constant-factor overhead. You're probably
+better off using Javascript's native `sort()` method if performance is
+important. (Actually, don't use Infuse at all if you're counting microseconds;
+it's fast, but indirection is indirection.)
+
+Note that multi-objects cannot be sorted meaningfully; you'll get a multiobject
+with a different structure. This problem arises because the key->value
+transform of a multiobject is not a well-defined function.
+
+Also note that this `sort` function is unstable, so it takes an ordering
+function that returns `true` if its first argument is less than the second,
+`false` otherwise. You can get such a function from a comparator by using
+`infuse.comparator_to_ordering`.
 
 ```js
 methods.sort = function (fn) {
@@ -255,9 +264,22 @@ methods.sort = function (fn) {
 };
 ```
 
+Sort-by allocates a backing collection of transformed values, sorts that, and
+remaps the keys back into the original collection's space. This means that your
+base collection must support `get` over its keyspace.
+
 ```js
 methods.sortby = function (fn) {
-  return this.map.apply(this, arguments).sort();
+  var f    = infuse.fn.apply(this, arguments),
+      sg   = this.generator(),
+      h    = infuse.heapmap(null, function (emit, id) {
+               sg(function (v, k) {return emit(f(v, k), k)}, id);
+             }, this),
+      g    = h.generator(),
+      self = this;
+  return this.derivative(function (emit, id) {
+    g(function (v, k) {return emit(self.get(k), k)}, id);
+  }, h);
 };
 ```
 
@@ -383,6 +405,11 @@ You can make an edge between any two objects by using the `to` function. You're
 required to specify an object to connect the receiver to, and you can
 optionally specify two functions, one to transform values in each direction.
 `ifn` is not required to be the inverse of `fn`, but it probably should be.
+
+Edges are legal between synchronous collections; in that case, it is up to you
+to call `pull` on the edge to manually propagate changes in either direction.
+See the [edge documentation](edge.md) and [source](edge-src.md) for more
+details about this.
 
 ```js
 methods.to = function (o, fn, ifn) {

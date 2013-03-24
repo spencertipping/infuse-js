@@ -163,7 +163,7 @@ future2.get()                   -> 5
 
 Like futures, signals support flatmapping. However, be careful: flatmapping
 signals will most likely cause a space leak and is probably not what you want
-to do. If you do need to flatmap a signal, you should demote the outer one into
+to do. If you do need to flatmap a signal, you should demote the inner one into
 a future by calling `once`. I'm doing it the wrong way below to illustrate what
 happens:
 
@@ -197,12 +197,20 @@ calls                           -> 1
 Here's what I mentioned earlier about the space leak:
 
 ```js
-sig1.push(5);
-sig2.push(5);
-calls                                   -> 3
-[8, 10].indexOf(both.get()) >= 0        -> true
+var old_sig2 = sig2;
+sig1.push(5);                   // this changes the value of sig2
+sig2.push(5);                   // the new sig2
+both.get()                              -> 10
+calls                                   -> 2
 ```
 
-The value of `both` is nondeterministic at this point. It is being updated by
-two children of `sig1`, and signal broadcast events occur in no specified
-order.
+```js
+old_sig2.push(5);
+both.get()                              -> 8
+calls                                   -> 3
+```
+
+At this point, `both` will get asynchronous updates from the old `sig2` and the
+new `sig2` in whatever order they occur. Worse is that the old signals aren't
+detached; none of the old signals will be freed until you call `detach` on
+`both`.

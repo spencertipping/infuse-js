@@ -25,16 +25,23 @@ future of a similarly-structured result whose values are all non-futures. That
 is, it transposes the future-ness of the values of some collection across the
 collection itself.
 
-Note that awaiting a collection of futures ignores the futures' keys.
+Note that awaiting a collection of futures ignores the futures' keys. You can
+specify a keygate, however.
 
 ```js
-infuse.await = function (xs) {
+infuse.await = function (xs, keygate) {
   var wrapped   = xs === (xs = infuse(xs)),
+      keygate   = infuse.keygate(keygate),
       root      = infuse.immediate(xs.zero()),
       collector = xs.reduce(root, function (base, v, k) {
         return v instanceof infuse.future || v instanceof infuse.signal
           ? base.flatmap(function (result) {
-              return v.once().map(function (v) {return result.push(v, k)});
+              // once() is used to collapse signals into futures. More than one
+              // result would trigger an error, since we're flatmapping into a
+              // future.
+              return v.once(keygate).map(function (v) {
+                return result.push(v, k);
+              });
             })
           : base.map(function (result) {return result.push(v, k)});
       });
@@ -49,11 +56,46 @@ infuse.await = function (xs) {
 
 Similar to `await` is `progress`, which gives you a signal of reductions as the
 individual futures complete. It supports signal values, not just future values,
-and the reduction is updated each time of the signals changes.
+and the reduction is updated each time one of the signals changes. You can
+think of `await` as intersecting futures/signals and `progress` as unioning
+them.
 
 ```js
-infuse.progress = function (xs) {
-  var wrapped = xs === (xs = infuse(xs));
+infuse.progress = function (xs, keygate) {
+  var wrapped = xs === (xs = infuse(xs)),
+      keygate = infuse.keygate(keygate),
+      root    = infuse.signal().push(xs.zero()),
+      union   = xs.reduce(root, function (base, v, k) {
+        var f = v instanceof infuse.future || v instanceof infuse.signal
+                ? v
+                : infuse.immediate(v);
+        f.generator()(function (v, inner_k) {base.push(base.get().push(v, k))},
+                      base.id());
+        return base;
+      });
+```
+
+```js
+  return union.map(function (result) {
+    return wrapped ? result : result.get();
+  });
+};
+```
+
+# Ordering functions
+
+These are useful when you're sorting things. All elements are considered
+distinct for orderings, so a ≮ a.
+
+```js
+infuse.comparator_to_ordering = function (comparator) {
+  return function (x, y) {return comparator(x, y) < 0};
+};
+```
+
+```js
+infuse.comparator_from_ordering = function (ordering) {
+  return function (x, y) {return ordering(x, y) ? -1 : 1};
 };
 ```
 
