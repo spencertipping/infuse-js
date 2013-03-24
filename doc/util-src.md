@@ -9,6 +9,28 @@ This module defines global functions on the `infuse` global.
 infuse.extend(function (infuse) {
 ```
 
+# Function constructors
+
+Various commonly-used functions.
+
+```js
+infuse.identity = function (x) {return x};
+infuse.id       = infuse.identity;
+```
+
+```js
+infuse.always     = function (x) {return function () {return x}};
+infuse.constantly = infuse.always;
+infuse.k          = infuse.always;
+```
+
+```js
+infuse.tap = function (v, fn) {
+  infuse.fnarg(arguments, 1)(v);
+  return v;
+};
+```
+
 # Future constructors
 
 Futures can be hard to work with on their own, so Infuse gives you some ways of
@@ -79,6 +101,19 @@ infuse.progress = function (xs, keygate) {
   return union.map(function (result) {
     return wrapped ? result : result.get();
   });
+};
+```
+
+Infuse gives you a global `on` function to unify futures and non-futures. If
+`v` is a future or signal, then `callback` will be invoked once it is resolved;
+otherwise `callback` is invoked synchronously on the value. In the latter case,
+`callback` receives no key, just a value.
+
+```js
+infuse.on = function (v, keygate, callback) {
+  return v instanceof infuse.future || v instanceof infuse.signal
+    ? v.once(keygate, callback)
+    : callback(v);
 };
 ```
 

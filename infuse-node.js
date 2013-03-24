@@ -378,6 +378,21 @@ methods.get = function () {
 
 infuse.extend(function (infuse) {
 
+// Function constructors.
+// Various commonly-used functions.
+
+infuse.identity = function (x) {return x};
+infuse.id       = infuse.identity;
+
+infuse.always     = function (x) {return function () {return x}};
+infuse.constantly = infuse.always;
+infuse.k          = infuse.always;
+
+infuse.tap = function (v, fn) {
+  infuse.fnarg(arguments, 1)(v);
+  return v;
+};
+
 // Future constructors.
 // Futures can be hard to work with on their own, so Infuse gives you some ways of
 // wrapping them and combining their values.
@@ -438,6 +453,17 @@ infuse.progress = function (xs, keygate) {
   return union.map(function (result) {
     return wrapped ? result : result.get();
   });
+};
+
+// Infuse gives you a global `on` function to unify futures and non-futures. If
+// `v` is a future or signal, then `callback` will be invoked once it is resolved;
+// otherwise `callback` is invoked synchronously on the value. In the latter case,
+// `callback` receives no key, just a value.
+
+infuse.on = function (v, keygate, callback) {
+  return v instanceof infuse.future || v instanceof infuse.signal
+    ? v.once(keygate, callback)
+    : callback(v);
 };
 
 // Ordering functions.
@@ -2196,6 +2222,9 @@ methods.generator = function () {
 // to date with. So each edge becomes one-directional and idempotent within the
 // context of an update operation.
 
+// If the value you send through an edge is a future or signal, the edge waits to
+// propagate the change until the future is resolved.
+
 methods.push = function (v, k) {
   var a = this.a_,
       b = this.b_;
@@ -2204,24 +2233,27 @@ methods.push = function (v, k) {
     'infuse: cannot push to an edge with undefined endpoints (this '
   + 'happens if you call push() on an edge after detaching it)');
 
-  var va = a.version(),
-      vb = b.version(),
-      sa = this.va_,
-      sb = this.vb_;
+  var self = this;
+  infuse.on(v, null, function (v) {
+    var va = a.version(),
+        vb = b.version(),
+        sa = self.va_,
+        sb = self.vb_;
 
-  if (sa < va && sb >= vb)
-    this.sig_.push(v, k),
-    b.push(v, k),                               // commit value to b
-    this.gb_(this.from_b_, this.id()),          // pull updates
-    this.vb_ = sb = b.version(),                // catch up to b
-    this.va_ = sa = va;                         // enable propagation back to a
+    if (sa < va && sb >= vb)
+      self.sig_.push(v, k),
+      b.push(v, k),                             // commit value to b
+      self.gb_(self.from_b_, self.id()),        // pull updates
+      self.vb_ = sb = b.version(),              // catch up to b
+      self.va_ = sa = va;                       // enable propagation back to a
 
-  if (sb < vb && sa >= va)
-    this.sig_.push(v, k),
-    a.push(v, k),                               // commit value to a
-    this.ga_(this.from_a_, this.id()),          // pull updates
-    this.va_ = sa = a.version(),                // catch up to a
-    this.vb_ = sb = vb;                         // enable propagation back to b
+    if (sb < vb && sa >= va)
+      self.sig_.push(v, k),
+      a.push(v, k),                             // commit value to a
+      self.ga_(self.from_a_, self.id()),        // pull updates
+      self.va_ = sa = a.version(),              // catch up to a
+      self.vb_ = sb = vb;                       // enable propagation back to b
+  });
 
   return this;
 };
@@ -2229,11 +2261,25 @@ methods.push = function (v, k) {
 // You can connect an edge to one or more synchronous objects. If you do, you'll
 // need to manually call `pull` to get the changes to propagate. Note that if both
 // objects have diverged, **calling `pull` will do nothing**! You can check for
-// this state using the `is_divergent` method.
+// this state using the `is_divergent` method, and you can choose either endpoint
+// using `choose`.
 
 methods.is_divergent = function () {
   return this.a_.version() > this.va_
       && this.b_.version() > this.vb_;
+};
+
+// Choosing a value doesn't activate any propagation, it just makes it so that the
+// edge is able to push to the other endpoint. If the endpoints are synchronous,
+// you'll want to invoke `pull` after `choose`.
+
+methods.choose = function (x, force) {
+  if (this.is_divergent() || force)
+    if      (x === this.a_ || x === true)  this.vb_ = this.b_.version();
+    else if (x === this.b_ || x === false) this.va_ = this.a_.version();
+    else throw new Error('infuse: attempted to choose() a nonexistent '
+                       + 'endpoint');
+  return this;
 };
 
 methods.pull = function () {
@@ -2255,6 +2301,11 @@ methods.pull = function () {
 // and `generator`.
 
 infuse.extend(function (infuse, methods) {
+
+methods.tap = function (fn) {
+  infuse.fn.apply(this, arguments)(this);
+  return this;
+};
 
 // Instance identification.
 // For various reasons it becomes useful to have an object-key reference for any

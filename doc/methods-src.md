@@ -11,6 +11,13 @@ and `generator`.
 infuse.extend(function (infuse, methods) {
 ```
 
+```js
+methods.tap = function (fn) {
+  infuse.fn.apply(this, arguments)(this);
+  return this;
+};
+```
+
 # Instance identification
 
 For various reasons it becomes useful to have an object-key reference for any

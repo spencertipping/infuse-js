@@ -8,6 +8,11 @@
 
 infuse.extend(function (infuse, methods) {
 
+methods.tap = function (fn) {
+  infuse.fn.apply(this, arguments)(this);
+  return this;
+};
+
 // Instance identification.
 // For various reasons it becomes useful to have an object-key reference for any
 // Infuse object. This value is used as the second argument to functions given to

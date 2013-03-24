@@ -126,5 +126,90 @@ xs.size()                       -> 2
 e.pull();
 o.size()                        -> 2
 o.keys().sort().join(',')       -> 'foo,1'
+```
+
+So far we've had synchronous edges, but you can also propagate the changes
+asynchronously. This happens if you send a future or a signal through an edge.
+For example:
+
+```js
+var a = infuse.signal();
+var b = infuse.signal();
+```
+
+```js
+var gate_ab = infuse.signal();
+var gate_ba = infuse.signal();
+```
+
+```js
+var e = a.to(b, infuse.always(gate_ab), infuse.always(gate_ba));
+```
+
+```js
+a.push(3);
+b.get()                         -> null
+gate_ab.push(4);
+b.get()                         -> 4
+a.get()                         -> 3
+```
+
+Only the first result is used; signals are internally collapsed into futures
+using `once`.
+
+```js
+gate_ab.push(5);
+b.get()                         -> 4
+```
+
+```js
+b.push(10);
+a.get()                         -> 3
+gate_ba.push(8);
+a.get()                         -> 8
+gate_ba.push(7);
+a.get()                         -> 8
+```
+
+One thing to watch out for is that asynchronous propagation won't clobber an
+updated endpoint. For example:
+
+```js
+a.push('foo');
+b.push('bar');
+gate_ab.push('bif');
+a.get()                         -> 'foo'
+b.get()                         -> 'bar'
+```
+
+```js
+gate_ba.push('baz');
+a.get()                         -> 'foo'
+b.get()                         -> 'bar'
+```
+
+At this point the edge is divergent:
+
+```js
+e.is_divergent()                -> true
+```
+
+You can fix this by choosing the value from either endpoint:
+
+```js
+e.choose(a)                     -> e
+```
+
+Choosing a value doesn't propagate anything, but it does resolve the conflict.
+
+```js
+a.get()                         -> 'foo'
+b.get()                         -> 'bar'
+```
+
+```js
+a.push(144);
+gate_ab.push(288);
+b.get()                         -> 288
 
 ```
