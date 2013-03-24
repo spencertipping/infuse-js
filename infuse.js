@@ -2511,9 +2511,9 @@ methods.join = function (sep) {
 // data possible.
 
 // Sorting functions return in constant time and the derivative collections are
-// lazily sorted in O(r k log n) time, where r is the number of generator
-// re-entrances, k is the number of realized elements, and n is the size of the
-// receiver.
+// lazily sorted in O(n log n + r(n + k log n)) time, where r is the number of
+// generator re-entrances, k is the number of realized elements, and n is the size
+// of the receiver.
 
 // These functions have a fairly large constant-factor overhead. You're probably
 // better off using Javascript's native `sort()` method if performance is
