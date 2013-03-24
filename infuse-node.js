@@ -347,6 +347,10 @@ methods.initialize = function (x_or_f, base) {
     this.version_   = 1;
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#cell(' : 'cell(') + this.x_ + ')';
+};
+
 methods.size = function () {return 1};
 
 methods.push_ = function (v, k) {
@@ -417,24 +421,21 @@ infuse.immediate = function (v, k) {return infuse.future().push(v, k)};
 // specify a keygate, however.
 
 infuse.await = function (xs, keygate) {
-  var wrapped   = xs === (xs = infuse(xs)),
+  var xs        = infuse(xs),
       keygate   = infuse.keygate(keygate),
-      root      = infuse.immediate(xs.zero()),
-      collector = xs.reduce(root, function (base, v, k) {
-        return v instanceof infuse.future || v instanceof infuse.signal
-          ? base.flatmap(function (result) {
-              // once() is used to collapse signals into futures. More than one
-              // result would trigger an error, since we're flatmapping into a
-              // future.
-              return v.once(keygate).map(function (v) {
-                return result.push(v, k);
-              });
-            })
-          : base.map(function (result) {return result.push(v, k)});
-      });
+      root      = infuse.immediate(xs.zero());
 
-  return collector.map(function (result) {
-    return wrapped ? result : result.get();
+  return xs.reduce(root, function (base, v, k) {
+    return v instanceof infuse.future || v instanceof infuse.signal
+      ? base.flatmap(function (result) {
+          // once() is used to collapse signals into futures. More than one
+          // result would trigger an error, since we're flatmapping into a
+          // future.
+          return v.once(keygate).map(function (v) {
+            return result.push(v, k);
+          });
+        })
+      : base.map(function (result) {return result.push(v, k)});
   });
 };
 
@@ -445,20 +446,17 @@ infuse.await = function (xs, keygate) {
 // them.
 
 infuse.progress = function (xs, keygate) {
-  var wrapped = xs === (xs = infuse(xs)),
+  var xs      = infuse(xs),
       keygate = infuse.keygate(keygate),
-      root    = infuse.signal().push(xs.zero()),
-      union   = xs.reduce(root, function (base, v, k) {
-        var f = v instanceof infuse.future || v instanceof infuse.signal
-                ? v
-                : infuse.immediate(v);
-        f.generator()(function (v, inner_k) {base.push(base.get().push(v, k))},
-                      base.id());
-        return base;
-      });
+      root    = infuse.signal().push(xs.zero());
 
-  return union.map(function (result) {
-    return wrapped ? result : result.get();
+  return xs.reduce(root, function (base, v, k) {
+    var f = v instanceof infuse.future || v instanceof infuse.signal
+            ? v
+            : infuse.immediate(v);
+    f.generator()(function (v, inner_k) {base.push(base.get().push(v, k))},
+                  base.id());
+    return base;
   });
 };
 
@@ -577,6 +575,12 @@ methods.initialize = function (above, generator, base) {
   infuse.assert(!!base === !!generator,
     'infuse: base and generator must be specified together ('
   + 'error constructing heapmap)');
+};
+
+methods.tos = function () {
+  return (this.base_ ? '#<' : '<')
+       + this.map('_2 + ": " + _1').join(', ')
+       + '>';
 };
 
 methods.size = function () {return this.pull().xs_.length - 1};
@@ -1329,6 +1333,10 @@ methods.initialize = function (xs_or_f, base) {
     this.version_   = 1;
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#[' : 'I[') + this.join(', ') + ']';
+};
+
 // Size is always expressed as the number of items currently realized, not the
 // eventual size of a lazy sequence. Any given lazy sequence will be both finite
 // (as its size is finite) and indefinite at the same time, and operations such as
@@ -1477,6 +1485,10 @@ methods.initialize = function (size, generator, base) {
   this.pull();
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#[... ' : 'I[... ') + this.join(', ') + ']';
+};
+
 methods.size = function () {return this.pull().xs_.length};
 
 methods.push_ = function (v, k) {
@@ -1586,6 +1598,12 @@ methods.initialize = function (o_or_f, base) {
     this.generator_ = null,
     this.version_   = 1,
     this.journal_   = null;
+};
+
+methods.tos = function () {
+  return (this.base_ ? '#{' : 'I{')
+       + this.keys().sort().map('_ + ": " + o[_]', {o: this.o_}).join(', ')
+       + '}';
 };
 
 // Size is the number of distinct key/value pairs stored in the object. This
@@ -1733,6 +1751,13 @@ methods.initialize = function (o_or_f, base) {
   }
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#{' : 'I{')
+       + this.keys().sort().uniq()
+             .map('_ + "::" + o[_]', {o: this.o_}).join(', ')
+       + '}';
+};
+
 // Size is the number of key/value pairs stored, with the provision that multiple
 // values per key count independently. So {foo: 2, foo: 3} has size 2.
 
@@ -1862,6 +1887,19 @@ methods.initialize = function (generator, base) {
     generator(function (v, k) {return self.push(v, k)}, this.id());
     this.bases_[base.id()] = base;
   }
+};
+
+methods.tos = function () {
+  var is_derivative = false, bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k)) {
+      is_derivative = true;
+      break;
+    }
+  return (is_derivative ? '#future(' : 'future(')
+    + (this.size() ? this.value_ + (this.key_ == null ? '' : ', ' + this.key_)
+                   : '')
+    + ')';
 };
 
 methods.size = function () {return +!this.listeners_};
@@ -2019,6 +2057,19 @@ methods.initialize = function (generator, base) {
     generator(function (v, k) {return self.push(v, k)}, this.id());
     this.bases_[base.id()] = base;
   }
+};
+
+methods.tos = function () {
+  var is_derivative = false, bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k)) {
+      is_derivative = true;
+      break;
+    }
+  return (is_derivative ? '#signal(' : 'signal(')
+    + (this.size_ ? this.value_ + (this.key_ == null ? '' : ', ' + this.key_)
+                  : '')
+    + ')';
 };
 
 methods.size = function () {return this.size_};
@@ -2188,6 +2239,10 @@ methods.initialize = function (a, b, fab, fba) {
 
   this.ga_(this.from_a_, this.id());
   this.gb_(this.from_b_, this.id());
+};
+
+methods.tos = function () {
+  return '<--[' + this.gate_.get() + ']-->';
 };
 
 methods.size    = function () {return this.sig_.size()};
@@ -2728,6 +2783,14 @@ methods.tail = function (n) {
 
 methods.to = function (o, fn, ifn) {
   return infuse.edge(this, o, fn, ifn);
+};
+
+// Serialization.
+// Objects should provide some kind of useful string representation of themselves
+// in response to the `tos` method.
+
+methods.toString = function () {
+  return this.tos();
 };
 
 });

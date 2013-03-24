@@ -491,6 +491,17 @@ methods.to = function (o, fn, ifn) {
 };
 ```
 
+# Serialization
+
+Objects should provide some kind of useful string representation of themselves
+in response to the `tos` method.
+
+```js
+methods.toString = function () {
+  return this.tos();
+};
+```
+
 ```js
 });
 

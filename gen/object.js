@@ -41,6 +41,12 @@ methods.initialize = function (o_or_f, base) {
     this.journal_   = null;
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#{' : 'I{')
+       + this.keys().sort().map('_ + ": " + o[_]', {o: this.o_}).join(', ')
+       + '}';
+};
+
 // Size is the number of distinct key/value pairs stored in the object. This
 // function needs to be amortized O(1), so we use the journal to tell us how many
 // items we have.

@@ -38,6 +38,13 @@ methods.initialize = function (o_or_f, base) {
   }
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#{' : 'I{')
+       + this.keys().sort().uniq()
+             .map('_ + "::" + o[_]', {o: this.o_}).join(', ')
+       + '}';
+};
+
 // Size is the number of key/value pairs stored, with the provision that multiple
 // values per key count independently. So {foo: 2, foo: 3} has size 2.
 

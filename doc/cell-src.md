@@ -38,6 +38,12 @@ methods.initialize = function (x_or_f, base) {
 ```
 
 ```js
+methods.tos = function () {
+  return (this.base_ ? '#cell(' : 'cell(') + this.x_ + ')';
+};
+```
+
+```js
 methods.size = function () {return 1};
 ```
 

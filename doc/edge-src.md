@@ -62,6 +62,12 @@ methods.initialize = function (a, b, fab, fba) {
 ```
 
 ```js
+methods.tos = function () {
+  return '<--[' + this.gate_.get() + ']-->';
+};
+```
+
+```js
 methods.size    = function () {return this.sig_.size()};
 methods.version = function () {return this.sig_.version()};
 ```

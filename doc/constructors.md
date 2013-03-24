@@ -33,15 +33,13 @@ You can convert between Infuse collection types using `into`. For example:
 
 ```js
 var o = infuse(['foo', 'bar', 'bif']).into(infuse.object);
-o.keys().sort().join(',')                       -> '0,1,2'
-o.get(['0', '1', '2']).join(',')                -> 'foo,bar,bif'
+o.tos()                                         -> '#{0: foo, 1: bar, 2: bif}'
 ```
 
 ```js
 var o = {};
 infuse(['a', 'b', 'c', 'd']).into(o);
-o['0']                                          -> 'a'
-o['3']                                          -> 'd'
+infuse(o).tos()                                 -> 'I{0: a, 1: b, 2: c, 3: d}'
 ```
 
 ```js
@@ -58,6 +56,7 @@ var sig = infuse.signal();
 var o   = infuse({});
 sig.into(o)                                     -> o
 sig.push(4, 'foo').push(5, 'bar')               -> sig
+o.tos()                                         -> 'I{bar: 5, foo: 4}'
 o.size()                                        -> 2
 o.keys().sort().join(',')                       -> 'bar,foo'
 o.get(['foo', 'bar']).join(',')                 -> '4,5'

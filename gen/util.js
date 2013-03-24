@@ -38,24 +38,21 @@ infuse.immediate = function (v, k) {return infuse.future().push(v, k)};
 // specify a keygate, however.
 
 infuse.await = function (xs, keygate) {
-  var wrapped   = xs === (xs = infuse(xs)),
+  var xs        = infuse(xs),
       keygate   = infuse.keygate(keygate),
-      root      = infuse.immediate(xs.zero()),
-      collector = xs.reduce(root, function (base, v, k) {
-        return v instanceof infuse.future || v instanceof infuse.signal
-          ? base.flatmap(function (result) {
-              // once() is used to collapse signals into futures. More than one
-              // result would trigger an error, since we're flatmapping into a
-              // future.
-              return v.once(keygate).map(function (v) {
-                return result.push(v, k);
-              });
-            })
-          : base.map(function (result) {return result.push(v, k)});
-      });
+      root      = infuse.immediate(xs.zero());
 
-  return collector.map(function (result) {
-    return wrapped ? result : result.get();
+  return xs.reduce(root, function (base, v, k) {
+    return v instanceof infuse.future || v instanceof infuse.signal
+      ? base.flatmap(function (result) {
+          // once() is used to collapse signals into futures. More than one
+          // result would trigger an error, since we're flatmapping into a
+          // future.
+          return v.once(keygate).map(function (v) {
+            return result.push(v, k);
+          });
+        })
+      : base.map(function (result) {return result.push(v, k)});
   });
 };
 
@@ -66,20 +63,17 @@ infuse.await = function (xs, keygate) {
 // them.
 
 infuse.progress = function (xs, keygate) {
-  var wrapped = xs === (xs = infuse(xs)),
+  var xs      = infuse(xs),
       keygate = infuse.keygate(keygate),
-      root    = infuse.signal().push(xs.zero()),
-      union   = xs.reduce(root, function (base, v, k) {
-        var f = v instanceof infuse.future || v instanceof infuse.signal
-                ? v
-                : infuse.immediate(v);
-        f.generator()(function (v, inner_k) {base.push(base.get().push(v, k))},
-                      base.id());
-        return base;
-      });
+      root    = infuse.signal().push(xs.zero());
 
-  return union.map(function (result) {
-    return wrapped ? result : result.get();
+  return xs.reduce(root, function (base, v, k) {
+    var f = v instanceof infuse.future || v instanceof infuse.signal
+            ? v
+            : infuse.immediate(v);
+    f.generator()(function (v, inner_k) {base.push(base.get().push(v, k))},
+                  base.id());
+    return base;
   });
 };
 

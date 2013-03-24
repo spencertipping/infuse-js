@@ -29,6 +29,10 @@ methods.initialize = function (x_or_f, base) {
     this.version_   = 1;
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#cell(' : 'cell(') + this.x_ + ')';
+};
+
 methods.size = function () {return 1};
 
 methods.push_ = function (v, k) {

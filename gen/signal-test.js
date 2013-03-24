@@ -3,41 +3,45 @@
 
 // More encapsulated callbacks! For example:
 
-var f      = infuse.signal();
+var s      = infuse.signal();
 var called = 0;
 var errors = 0;
 
-var grouped = f.group('_2');    // group by key, or callback type (see below)
+var grouped = s.group('_2');    // group by key, or callback type (see below)
 
 infuse.assert_equal((grouped.size()                  ), (0));
+infuse.assert_equal((grouped.tos()                   ), ('#{}'));
 
-infuse.assert_equal((f.size()                        ), (0));
-f.on('value', function (x) {++called});
-f.on('error', function (x) {++errors});
-
+infuse.assert_equal((s.size()                        ), (0));
+s.on('value', function (x) {++called});
+s.on('error', function (x) {++errors});
 infuse.assert_equal((called                          ), (0));
-infuse.assert_equal((f.size()                        ), (0));
+infuse.assert_equal((s.size()                        ), (0));
+infuse.assert_equal((s.tos()                         ), ('signal()'));
 
-var trigger = f.trigger('value');
+var trigger = s.trigger('value');
 trigger(5);
 infuse.assert_equal((called                          ), (1));
-infuse.assert_equal((f.size()                        ), (1));
+infuse.assert_equal((s.size()                        ), (1));
+infuse.assert_equal((s.tos()                         ), ('signal(5, value)'));
 
-// If `f` were a future, it would be finalized; but because it's a signal it can
+// If `s` were a future, it would be finalized; but because it's a signal it can
 // still get new values. For example:
 
 trigger(5);
+infuse.assert_equal((s.tos()                         ), ('signal(5, value)'));
 infuse.assert_equal((called                          ), (2));
 
 // If you're using a signal to represent an event, then you'll probably want to
 // handle error cases somehow. To do that, we just create another trigger:
 
-var ohnoes = f.trigger('error');
+var ohnoes = s.trigger('error');
 infuse.assert_equal((errors                          ), (0));
 ohnoes('something bad happened');
 infuse.assert_equal((errors                          ), (1));
+infuse.assert_equal((s.tos()                         ), ('signal(something bad happened, error)'));
 
-// Earlier we called `f.group`, constructing a derivative multiobject. Even though
+// Earlier we called `s.group`, constructing a derivative multiobject. Even though
 // futures update asynchronously, the grouped index is kept up-to-date (this time
 // using push-updating instead of pull-updating):
 
@@ -49,7 +53,7 @@ infuse.assert_equal((grouped.size()                  ), (3));
 // series of values over time, so we can build a new signal whose values represent
 // an accumulation. For example:
 
-var g = f.reductions(0, '_1 + _2');
+var g = s.reductions(0, '_1 + _2');
 var g_called = 0;
 
 g.on('value', function (x) {++g_called});

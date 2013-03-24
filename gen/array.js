@@ -47,6 +47,10 @@ methods.initialize = function (xs_or_f, base) {
     this.version_   = 1;
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#[' : 'I[') + this.join(', ') + ']';
+};
+
 // Size is always expressed as the number of items currently realized, not the
 // eventual size of a lazy sequence. Any given lazy sequence will be both finite
 // (as its size is finite) and indefinite at the same time, and operations such as

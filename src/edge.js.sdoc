@@ -47,6 +47,10 @@ methods.initialize = function (a, b, fab, fba) {
   this.gb_(this.from_b_, this.id());
 };
 
+methods.tos = function () {
+  return '<--[' + this.gate_.get() + ']-->';
+};
+
 methods.size    = function () {return this.sig_.size()};
 methods.version = function () {return this.sig_.version()};
 

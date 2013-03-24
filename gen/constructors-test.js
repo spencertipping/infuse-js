@@ -23,13 +23,11 @@ infuse.assert_equal((infuse.signal() instanceof infuse.signal        ), (true));
 // You can convert between Infuse collection types using `into`. For example:
 
 var o = infuse(['foo', 'bar', 'bif']).into(infuse.object);
-infuse.assert_equal((o.keys().sort().join(',')                       ), ('0,1,2'));
-infuse.assert_equal((o.get(['0', '1', '2']).join(',')                ), ('foo,bar,bif'));
+infuse.assert_equal((o.tos()                                         ), ('#{0: foo, 1: bar, 2: bif}'));
 
 var o = {};
 infuse(['a', 'b', 'c', 'd']).into(o);
-infuse.assert_equal((o['0']                                          ), ('a'));
-infuse.assert_equal((o['3']                                          ), ('d'));
+infuse.assert_equal((infuse(o).tos()                                 ), ('I{0: a, 1: b, 2: c, 3: d}'));
 
 var o  = infuse({foo: 'bar', bif: 'baz'});
 var xs = [];
@@ -42,6 +40,7 @@ var sig = infuse.signal();
 var o   = infuse({});
 infuse.assert_equal((sig.into(o)                                     ), (o));
 infuse.assert_equal((sig.push(4, 'foo').push(5, 'bar')               ), (sig));
+infuse.assert_equal((o.tos()                                         ), ('I{bar: 5, foo: 4}'));
 infuse.assert_equal((o.size()                                        ), (2));
 infuse.assert_equal((o.keys().sort().join(',')                       ), ('bar,foo'));
 infuse.assert_equal((o.get(['foo', 'bar']).join(',')                 ), ('4,5'));

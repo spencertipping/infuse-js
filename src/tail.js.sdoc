@@ -26,6 +26,10 @@ methods.initialize = function (size, generator, base) {
   this.pull();
 };
 
+methods.tos = function () {
+  return (this.base_ ? '#[... ' : 'I[... ') + this.join(', ') + ']';
+};
+
 methods.size = function () {return this.pull().xs_.length};
 
 methods.push_ = function (v, k) {

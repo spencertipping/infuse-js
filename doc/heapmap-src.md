@@ -63,6 +63,14 @@ methods.initialize = function (above, generator, base) {
 ```
 
 ```js
+methods.tos = function () {
+  return (this.base_ ? '#<' : '<')
+       + this.map('_2 + ": " + _1').join(', ')
+       + '>';
+};
+```
+
+```js
 methods.size = function () {return this.pull().xs_.length - 1};
 ```
 

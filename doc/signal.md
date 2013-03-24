@@ -5,42 +5,43 @@ See also the [Infuse signal source](signal-src.md).
 More encapsulated callbacks! For example:
 
 ```js
-var f      = infuse.signal();
+var s      = infuse.signal();
 var called = 0;
 var errors = 0;
 ```
 
 ```js
-var grouped = f.group('_2');    // group by key, or callback type (see below)
+var grouped = s.group('_2');    // group by key, or callback type (see below)
 ```
 
 ```js
 grouped.size()                  -> 0
+grouped.tos()                   -> '#{}'
 ```
 
 ```js
-f.size()                        -> 0
-f.on('value', function (x) {++called});
-f.on('error', function (x) {++errors});
-```
-
-```js
+s.size()                        -> 0
+s.on('value', function (x) {++called});
+s.on('error', function (x) {++errors});
 called                          -> 0
-f.size()                        -> 0
+s.size()                        -> 0
+s.tos()                         -> 'signal()'
 ```
 
 ```js
-var trigger = f.trigger('value');
+var trigger = s.trigger('value');
 trigger(5);
 called                          -> 1
-f.size()                        -> 1
+s.size()                        -> 1
+s.tos()                         -> 'signal(5, value)'
 ```
 
-If `f` were a future, it would be finalized; but because it's a signal it can
+If `s` were a future, it would be finalized; but because it's a signal it can
 still get new values. For example:
 
 ```js
 trigger(5);
+s.tos()                         -> 'signal(5, value)'
 called                          -> 2
 ```
 
@@ -48,13 +49,14 @@ If you're using a signal to represent an event, then you'll probably want to
 handle error cases somehow. To do that, we just create another trigger:
 
 ```js
-var ohnoes = f.trigger('error');
+var ohnoes = s.trigger('error');
 errors                          -> 0
 ohnoes('something bad happened');
 errors                          -> 1
+s.tos()                         -> 'signal(something bad happened, error)'
 ```
 
-Earlier we called `f.group`, constructing a derivative multiobject. Even though
+Earlier we called `s.group`, constructing a derivative multiobject. Even though
 futures update asynchronously, the grouped index is kept up-to-date (this time
 using push-updating instead of pull-updating):
 
@@ -69,7 +71,7 @@ series of values over time, so we can build a new signal whose values represent
 an accumulation. For example:
 
 ```js
-var g = f.reductions(0, '_1 + _2');
+var g = s.reductions(0, '_1 + _2');
 var g_called = 0;
 ```
 

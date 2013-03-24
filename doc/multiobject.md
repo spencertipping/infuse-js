@@ -16,18 +16,16 @@ o.push(1, 'bar')                -> o
 ```
 
 ```js
-o.get('foo').join(',')          -> '1,2'
-o.get('bar').join(',')          -> '1'
-```
-
-```js
+o.tos()                         -> 'I{bar::I[1], foo::I[1, 2]}'
+o.get('foo').tos()              -> 'I[1, 2]'
+o.get('bar').tos()              -> 'I[1]'
 o.size()                        -> 3
 ```
 
 ```js
 var i = o.inverse();
-i.get('1').join(',')            -> 'foo,bar'
-i.get('2').join(',')            -> 'foo'
+i.tos()                         -> '#{1::I[foo, bar], 2::I[foo]}'
+i.get('1').tos()                -> 'I[foo, bar]'
 i.size()                        -> 3
 ```
 
@@ -46,12 +44,14 @@ var indexed = xs.index('_ % 3');
 ```
 
 ```js
+grouped.tos()                   -> '#{0::I[3, 6], 1::I[1, 4], 2::I[2, 5]}'
 grouped.size()                  -> 6
 grouped.get('0').join(',')      -> '3,6'
 grouped.get('1').join(',')      -> '1,4'
 ```
 
 ```js
+indexed.tos()                   -> '#{0: 6, 1: 4, 2: 5}'
 indexed.size()                  -> 3
 indexed.get('0')                -> 6
 indexed.get('1')                -> 4
@@ -61,7 +61,7 @@ And like all other Infuse collections, multiobjects provide dynamic updating:
 
 ```js
 xs.push(7)                      -> xs
-grouped.get('1').join(',')      -> '1,4,7'
+grouped.get('1').tos()          -> 'I[1, 4, 7]'
 grouped.size()                  -> 7
 
 ```

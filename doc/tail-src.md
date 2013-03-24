@@ -35,6 +35,12 @@ methods.initialize = function (size, generator, base) {
 ```
 
 ```js
+methods.tos = function () {
+  return (this.base_ ? '#[... ' : 'I[... ') + this.join(', ') + ']';
+};
+```
+
+```js
 methods.size = function () {return this.pull().xs_.length};
 ```
 

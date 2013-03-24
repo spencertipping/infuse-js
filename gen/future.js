@@ -47,6 +47,19 @@ methods.initialize = function (generator, base) {
   }
 };
 
+methods.tos = function () {
+  var is_derivative = false, bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k)) {
+      is_derivative = true;
+      break;
+    }
+  return (is_derivative ? '#future(' : 'future(')
+    + (this.size() ? this.value_ + (this.key_ == null ? '' : ', ' + this.key_)
+                   : '')
+    + ')';
+};
+
 methods.size = function () {return +!this.listeners_};
 methods.key  = function () {return this.key_};
 

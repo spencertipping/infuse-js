@@ -11,13 +11,14 @@ var f = infuse.await([f1, f2]);
 
 ```js
 f.get()                                 -> null
+f.toString()                            -> '#future()'
 ```
 
 ```js
 var f_called = false;
 f.on(null, function (result) {
   f_called = true;
-  result.join(',')                      -> '3,5'
+  result.toString()                     -> 'I[3, 5]'
 });
 ```
 
@@ -30,7 +31,8 @@ f.get()                                 -> null
 ```js
 f1.push(3);
 f_called                                -> true
-f.get().join(',')                       -> '3,5'
+f.get().tos()                           -> 'I[3, 5]'
+f.tos()                                 -> 'future(I[3, 5])'
 ```
 
 Notice that `await` preserves the order of the original futures, regardless of
@@ -46,17 +48,13 @@ var both = infuse.progress(infuse({foo: sig1, bar: sig2}));
 ```
 
 ```js
-both.get()                              -> null
+both.tos()                              -> 'signal(I{})'
 sig1.push(5);
-both.get().keys().sort().join(',')      -> 'foo'
-both.fget().foo                         -> 5
+both.tos()                              -> 'signal(I{foo: 5})'
 sig1.push(6);
-both.get().keys().sort().join(',')      -> 'foo'
-both.fget().foo                         -> 6
+both.tos()                              -> 'signal(I{foo: 6})'
 sig2.push(3);
-both.get().keys().sort().join(',')      -> 'bar,foo'
-both.fget().foo                         -> 6
-both.fget().bar                         -> 3
+both.tos()                              -> 'signal(I{bar: 3, foo: 6})'
 ```
 
 Warning: **`progress` will not do the right thing with arrays**! Infuse arrays
@@ -72,13 +70,13 @@ var all  = infuse.progress([sig1, sig2]);
 ```
 
 ```js
-all.get()                               -> null
+all.tos()                               -> 'signal(I[])'
 sig2.push(4);
-all.get().join(',')                     -> '4'
+all.tos()                               -> 'signal(I[4])'
 sig2.push(5);
-all.get().join(',')                     -> '4,5'
+all.tos()                               -> 'signal(I[4, 5])'
 sig1.push(10);
-all.get().join(',')                     -> '4,5,10'
+all.tos()                               -> 'signal(I[4, 5, 10])'
 ```
 
 You should use objects if you need keys to be significant.
