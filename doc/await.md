@@ -4,9 +4,9 @@ Infuse provides some global functions that help you work with futures. Two
 useful ones are `await` and `progress`:
 
 ```js
-var f1 = infuse.future();
-var f2 = infuse.future();
-var f = infuse.await([f1, f2]);
+var f1 = $i.future();
+var f2 = $i.future();
+var f = $i.await([f1, f2]);
 ```
 
 ```js
@@ -42,9 +42,9 @@ Awaiting is appropriate when you want to block on all futures (or signals), but
 sometimes you want updates as they are resolved. In that case use `progress`:
 
 ```js
-var sig1 = infuse.signal();
-var sig2 = infuse.signal();
-var both = infuse.progress(infuse({foo: sig1, bar: sig2}));
+var sig1 = $i.signal();
+var sig2 = $i.signal();
+var both = $i.progress($i({foo: sig1, bar: sig2}));
 ```
 
 ```js
@@ -64,9 +64,9 @@ in an array that grows with elements in the order that the signals emitted
 them. For example:
 
 ```js
-var sig1 = infuse.signal();
-var sig2 = infuse.signal();
-var all  = infuse.progress([sig1, sig2]);
+var sig1 = $i.signal();
+var sig2 = $i.signal();
+var all  = $i.progress([sig1, sig2]);
 ```
 
 ```js

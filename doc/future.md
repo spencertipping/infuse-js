@@ -5,7 +5,7 @@ See also the [Infuse future source](future-src.md).
 Encapsulated callbacks! For example:
 
 ```js
-var f      = infuse.future();
+var f      = $i.future();
 var called = false;
 ```
 
@@ -50,8 +50,8 @@ Futures also support flat-mapping, which lets you compose asynchronous
 computation:
 
 ```js
-var f = infuse.future();
-var g = infuse.future();
+var f = $i.future();
+var g = $i.future();
 ```
 
 ```js

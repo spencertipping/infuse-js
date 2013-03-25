@@ -9,7 +9,8 @@ the global `infuse` function and the mechanism used to define type-specific
 infuse implementations.
 
 (function () {
-  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined;
+  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined,
+      original_$i     = typeof $i     !== typeof void 0 ? $i     : undefined;
 
   var dispatcher = function (name) {
     var result = function (x) {
@@ -36,10 +37,15 @@ infuse implementations.
   var infuse_global = dispatcher('infuse');
   infuse_global.dispatcher = dispatcher;
 
-  infuse_global.hide = function () {
-    infuse = original_infuse;
-    original_infuse = null;
-    delete infuse_global.hide;
+  infuse_global.hide = function (all) {
+    if ($i === infuse_global)
+      $i = original_$i,
+      original_$i = null;
+
+    if (all && infuse === infuse_global)
+      infuse = original_infuse,
+      original_infuse = null;
+
     return infuse_global;
   };
 
@@ -49,7 +55,7 @@ infuse implementations.
       xs[i]();
   };
 
-  infuse = infuse_global;
+  $i = infuse = infuse_global;
 })();
 
 // Bind a local variable so that extend() works even after hiding the global.

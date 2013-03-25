@@ -11,7 +11,8 @@ infuse implementations.
 
 ```js
 (function () {
-  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined;
+  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined,
+      original_$i     = typeof $i     !== typeof void 0 ? $i     : undefined;
 ```
 
 ```js
@@ -48,10 +49,19 @@ infuse implementations.
 ```
 
 ```js
-  infuse_global.hide = function () {
-    infuse = original_infuse;
-    original_infuse = null;
-    delete infuse_global.hide;
+  infuse_global.hide = function (all) {
+    if ($i === infuse_global)
+      $i = original_$i,
+      original_$i = null;
+```
+
+```js
+    if (all && infuse === infuse_global)
+      infuse = original_infuse,
+      original_infuse = null;
+```
+
+```js
     return infuse_global;
   };
 ```
@@ -65,7 +75,7 @@ infuse implementations.
 ```
 
 ```js
-  infuse = infuse_global;
+  $i = infuse = infuse_global;
 })();
 ```
 

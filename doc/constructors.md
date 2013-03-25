@@ -4,46 +4,46 @@ Every Infuse object is an instance of the global `infuse`, as well as being an
 instance of its constructor. For example:
 
 ```js
-infuse([]) instanceof infuse                    -> true
-infuse([]) instanceof infuse.array              -> true
+$i([]) instanceof $i                            -> true
+$i([]) instanceof $i.array                      -> true
 ```
 
 ```js
-infuse({}) instanceof infuse                    -> true
-infuse({}) instanceof infuse.object             -> true
+$i({}) instanceof $i                            -> true
+$i({}) instanceof $i.object                     -> true
 ```
 
 Infuse objects never inherit from each other, however. The only inheritance is
 from `infuse`.
 
 ```js
-infuse([]) instanceof infuse.object             -> false
+$i([]) instanceof $i.object                     -> false
 ```
 
 These inheritance properties also apply to asynchronous objects:
 
 ```js
-infuse.future() instanceof infuse               -> true
-infuse.future() instanceof infuse.future        -> true
-infuse.signal() instanceof infuse               -> true
-infuse.signal() instanceof infuse.signal        -> true
+$i.future() instanceof $i                       -> true
+$i.future() instanceof $i.future                -> true
+$i.signal() instanceof $i                       -> true
+$i.signal() instanceof $i.signal                -> true
 ```
 
 You can convert between Infuse collection types using `into`. For example:
 
 ```js
-var o = infuse(['foo', 'bar', 'bif']).into(infuse.object);
+var o = $i(['foo', 'bar', 'bif']).into($i.object);
 o.tos()                                         -> '#{0: foo, 1: bar, 2: bif}'
 ```
 
 ```js
 var o = {};
-infuse(['a', 'b', 'c', 'd']).into(o);
-infuse(o).tos()                                 -> 'I{0: a, 1: b, 2: c, 3: d}'
+$i(['a', 'b', 'c', 'd']).into(o);
+$i(o).tos()                                     -> 'I{0: a, 1: b, 2: c, 3: d}'
 ```
 
 ```js
-var o  = infuse({foo: 'bar', bif: 'baz'});
+var o  = $i({foo: 'bar', bif: 'baz'});
 var xs = [];
 o.into(xs)                                      -> xs
 xs.sort().join(',')                             -> 'bar,baz'
@@ -52,8 +52,8 @@ xs.sort().join(',')                             -> 'bar,baz'
 The same mechanism works between synchronous and asynchronous objects.
 
 ```js
-var sig = infuse.signal();
-var o   = infuse({});
+var sig = $i.signal();
+var o   = $i({});
 sig.into(o)                                     -> o
 sig.push(4, 'foo').push(5, 'bar')               -> sig
 o.tos()                                         -> 'I{bar: 5, foo: 4}'
@@ -78,8 +78,8 @@ A useful idiom is to maintain a window of signal history using a tail. For
 example:
 
 ```js
-var sig  = infuse.signal();
-var tail = sig.into(infuse.tail, 3);    // last 3 elements
+var sig  = $i.signal();
+var tail = sig.into($i.tail, 3);    // last 3 elements
 ```
 
 ```js

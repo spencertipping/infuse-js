@@ -25,6 +25,26 @@ methods.pull    = function () {return this};
 methods.version = function () {return this.size() + 1};
 ```
 
+```js
+methods.is_derivative = function () {
+  var bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k))
+      return true;
+  return false;
+};
+```
+
+```js
+methods.bases = function () {
+  var r = [], bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k))
+      r.push(bs[k]);
+  return r;
+};
+```
+
 # Detachment
 
 Push objects are forward-linked, so we need to inform the parent that the

@@ -5,7 +5,7 @@ See also the [Infuse multiobject source](multiobject-src.md).
 Just like objects, but each key maps to multiple values:
 
 ```js
-var o = infuse.multiobject();
+var o = $i.multiobject();
 ```
 
 ```js
@@ -38,7 +38,7 @@ i.get('2').join(',')            -> 'foo,bif'
 Multiobjects are generated when you `group` a collection. For example:
 
 ```js
-var xs = infuse([1, 2, 3, 4, 5, 6]);
+var xs = $i([1, 2, 3, 4, 5, 6]);
 var grouped = xs.group('_ % 3');
 var indexed = xs.index('_ % 3');
 ```

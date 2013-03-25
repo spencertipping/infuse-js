@@ -9,7 +9,8 @@
 // infuse implementations.
 
 (function () {
-  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined;
+  var original_infuse = typeof infuse !== typeof void 0 ? infuse : undefined,
+      original_$i     = typeof $i     !== typeof void 0 ? $i     : undefined;
 
   var dispatcher = function (name) {
     var result = function (x) {
@@ -36,10 +37,15 @@
   var infuse_global = dispatcher('infuse');
   infuse_global.dispatcher = dispatcher;
 
-  infuse_global.hide = function () {
-    infuse = original_infuse;
-    original_infuse = null;
-    delete infuse_global.hide;
+  infuse_global.hide = function (all) {
+    if ($i === infuse_global)
+      $i = original_$i,
+      original_$i = null;
+
+    if (all && infuse === infuse_global)
+      infuse = original_infuse,
+      original_infuse = null;
+
     return infuse_global;
   };
 
@@ -49,7 +55,7 @@
       xs[i]();
   };
 
-  infuse = infuse_global;
+  $i = infuse = infuse_global;
 })();
 
 // Bind a local variable so that extend() works even after hiding the global.
@@ -138,8 +144,11 @@ infuse.mixin('pull', function (methods) {
 // We assume the presence of `base_`, `version_`, and `generator_`. Of these,
 // `generator_` is kept private because accessing it changes its state.
 
-methods.base    = function () {return this.base_};
-methods.version = function () {return this.version_};
+methods.base          = function () {return this.base_};
+methods.version       = function () {return this.version_};
+methods.is_derivative = function () {return !!this.base_};
+
+methods.bases = function () {return this.base_ ? [this.base_] : []};
 
 // Pull propagation.
 // You can pull any collection with a base (it's a nop for independent
@@ -212,6 +221,22 @@ infuse.mixin('push', function (methods) {
 
 methods.pull    = function () {return this};
 methods.version = function () {return this.size() + 1};
+
+methods.is_derivative = function () {
+  var bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k))
+      return true;
+  return false;
+};
+
+methods.bases = function () {
+  var r = [], bs = this.bases_;
+  for (var k in bs)
+    if (Object.prototype.hasOwnProperty.call(bs, k))
+      r.push(bs[k]);
+  return r;
+};
 
 // Detachment.
 // Push objects are forward-linked, so we need to inform the parent that the
@@ -1890,13 +1915,7 @@ methods.initialize = function (generator, base) {
 };
 
 methods.tos = function () {
-  var is_derivative = false, bs = this.bases_;
-  for (var k in bs)
-    if (Object.prototype.hasOwnProperty.call(bs, k)) {
-      is_derivative = true;
-      break;
-    }
-  return (is_derivative ? '#future(' : 'future(')
+  return (this.is_derivative() ? '#future(' : 'future(')
     + (this.size() ? this.value_ + (this.key_ == null ? '' : ', ' + this.key_)
                    : '')
     + ')';
@@ -2060,13 +2079,7 @@ methods.initialize = function (generator, base) {
 };
 
 methods.tos = function () {
-  var is_derivative = false, bs = this.bases_;
-  for (var k in bs)
-    if (Object.prototype.hasOwnProperty.call(bs, k)) {
-      is_derivative = true;
-      break;
-    }
-  return (is_derivative ? '#signal(' : 'signal(')
+  return (this.is_derivative() ? '#signal(' : 'signal(')
     + (this.size_ ? this.value_ + (this.key_ == null ? '' : ', ' + this.key_)
                   : '')
     + ')';
@@ -2215,9 +2228,14 @@ infuse.type('edge', function (edge, methods) {
 
 // Edge state.
 // Edges maintain references to the objects they are connecting and the most
-// recent versions of those objects.
+// recent versions of those objects. They also maintain two nonderivative signals,
+// one for values and one for keygates, and a generator for each endpoint.
 
 methods.initialize = function (a, b, fab, fba) {
+  infuse.assert(a && b,
+    'infuse: must specify two non-null endpoints when constructing an '
+  + 'edge (the first argument of to() is required)');
+
   this.a_       = a;
   this.b_       = b;
   this.ga_      = a.generator();
@@ -2228,7 +2246,7 @@ methods.initialize = function (a, b, fab, fba) {
   this.gate_    = infuse.signal();
   this.keygate_ = this.gate_.map(infuse.keygate);
 
-  this.gate_.push(null);
+  this.gate_.push(null);                // set up initial keygate (accept all)
 
   fab = infuse.fn(fab);
   fba = infuse.fn(fba);
@@ -2247,6 +2265,15 @@ methods.tos = function () {
 
 methods.size    = function () {return this.sig_.size()};
 methods.version = function () {return this.sig_.version()};
+
+methods.get = function () {
+  var s = this.sig_;
+  return s.get.apply(s, arguments);
+};
+
+// Edges can't be derivatives of anything because they have too much identity.
+
+methods.is_derivative = function () {return false};
 
 // Gating.
 // You can specify which kinds of keys propagate along the edge in two ways. The
@@ -2268,8 +2295,8 @@ methods.gate = function () {return this.gate_};
 
 // Detachment.
 // Detaching an edge means removing its connection to both endpoints. You can't
-// have an edge with just one connection. You can't reattach an edge once you have
-// detached it.
+// have an edge with just one connection, and you can't reattach an edge once you
+// have detached it.
 
 methods.detach = function () {
   this.a_.detach_derivative(this);
@@ -2367,6 +2394,10 @@ methods.choose = function (x, force) {
                        + 'endpoint');
   return this;
 };
+
+// You need to call this if you have a synchronous endpoint. Synchronous endpoints
+// don't push changes, so calling `pull` on the edge is the only propagation
+// trigger.
 
 methods.pull = function () {
   if (this.va_ < this.a_.pull().version()) this.ga_(this.from_a_, this.id());

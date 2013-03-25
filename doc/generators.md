@@ -10,7 +10,7 @@ example:
 
 ```js
 var arr = [1, 2, 3, 4, 5];
-var xs  = infuse(arr);
+var xs  = $i(arr);
 var g   = xs.generator();
 ```
 
@@ -56,4 +56,4 @@ Big warning: If you're using a push-propagated object like a future or a
 signal, then you need to pass a second argument into the generator. This second
 argument is the Infuse ID of the object that will be receiving updates from the
 generator. If you aren't updating an Infuse object, you can just use
-`infuse.gen_id()` to create an anonymous ID.
+`$i.gen_id()` to create an anonymous ID.

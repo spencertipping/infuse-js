@@ -10,7 +10,7 @@ most derivatives do. See the [heapmap source](heapmap-src.md) for details about
 why it works this way.
 
 ```js
-var h = infuse.heapmap();       // uses minheap of numbers by default
+var h = $i.heapmap();           // uses minheap of numbers by default
 h.push(0, 'foo')                -> h
 h.push(1, 'bar')                -> h
 h.size()                        -> 2

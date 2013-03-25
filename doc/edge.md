@@ -7,8 +7,8 @@ two signals, each of which might change independently, and you want to preserve
 the invariant that `b.get() = a.get() + 1`.
 
 ```js
-var a = infuse.signal();
-var b = infuse.signal();
+var a = $i.signal();
+var b = $i.signal();
 var e = a.to(b, '_ + 1', '_ - 1');
 ```
 
@@ -54,8 +54,8 @@ We can connect arbitrarily many objects together in any acyclic topology. For
 example:
 
 ```js
-var c = infuse.signal();
-var d = infuse.signal();
+var c = $i.signal();
+var d = $i.signal();
 ```
 
 Let's make the values increase by one between `a`, `b`, `c`, and `d`
@@ -102,8 +102,8 @@ note that pre-connection object state is not transferred through the edge; only
 updates after the edge is connected will be propagated.
 
 ```js
-var xs = infuse([]);
-var o  = infuse({});
+var xs = $i([]);
+var o  = $i({});
 var e  = xs.to(o);
 ```
 
@@ -133,17 +133,17 @@ asynchronously. This happens if you send a future or a signal through an edge.
 For example:
 
 ```js
-var a = infuse.signal();
-var b = infuse.signal();
+var a = $i.signal();
+var b = $i.signal();
 ```
 
 ```js
-var gate_ab = infuse.signal();
-var gate_ba = infuse.signal();
+var gate_ab = $i.signal();
+var gate_ba = $i.signal();
 ```
 
 ```js
-var e = a.to(b, infuse.always(gate_ab), infuse.always(gate_ba));
+var e = a.to(b, $i.always(gate_ab), $i.always(gate_ba));
 ```
 
 ```js
@@ -217,8 +217,8 @@ Each edge has a keygate that you can use to filter the values that it
 propagates. For example:
 
 ```js
-var a = infuse.signal();
-var b = infuse.signal();
+var a = $i.signal();
+var b = $i.signal();
 var e = a.to(b);
 ```
 

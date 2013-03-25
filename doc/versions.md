@@ -7,7 +7,7 @@ object's version, which is a number that increases each time the object
 changes:
 
 ```js
-var xs = infuse([]);
+var xs = $i([]);
 ```
 
 ```js
@@ -47,7 +47,7 @@ This is how almost all of the transformation methods work. For example, here's
 how `map` is implemented:
 
 ```js
-var f      = infuse.fn('_ * 3');
+var f      = $i.fn('_ * 3');
 var g2     = xs.generator();
 var mapped = xs.derivative(function (emit) {
   g2(function (v, k) {

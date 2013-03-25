@@ -5,7 +5,7 @@ See also the [Infuse object source](object-src.md).
 These are instantiated like arrays and support a similar API:
 
 ```js
-var o = infuse({foo: 1, bar: 2, bif: 3});
+var o = $i({foo: 1, bar: 2, bif: 3});
 var keys = o.keys();
 o.size()                        -> 3
 keys.size()                     -> 3

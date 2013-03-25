@@ -21,9 +21,14 @@ infuse.type('edge', function (edge, methods) {
 
 // Edge state.
 // Edges maintain references to the objects they are connecting and the most
-// recent versions of those objects.
+// recent versions of those objects. They also maintain two nonderivative signals,
+// one for values and one for keygates, and a generator for each endpoint.
 
 methods.initialize = function (a, b, fab, fba) {
+  infuse.assert(a && b,
+    'infuse: must specify two non-null endpoints when constructing an '
+  + 'edge (the first argument of to() is required)');
+
   this.a_       = a;
   this.b_       = b;
   this.ga_      = a.generator();
@@ -34,7 +39,7 @@ methods.initialize = function (a, b, fab, fba) {
   this.gate_    = infuse.signal();
   this.keygate_ = this.gate_.map(infuse.keygate);
 
-  this.gate_.push(null);
+  this.gate_.push(null);                // set up initial keygate (accept all)
 
   fab = infuse.fn(fab);
   fba = infuse.fn(fba);
@@ -53,6 +58,15 @@ methods.tos = function () {
 
 methods.size    = function () {return this.sig_.size()};
 methods.version = function () {return this.sig_.version()};
+
+methods.get = function () {
+  var s = this.sig_;
+  return s.get.apply(s, arguments);
+};
+
+// Edges can't be derivatives of anything because they have too much identity.
+
+methods.is_derivative = function () {return false};
 
 // Gating.
 // You can specify which kinds of keys propagate along the edge in two ways. The
@@ -74,8 +88,8 @@ methods.gate = function () {return this.gate_};
 
 // Detachment.
 // Detaching an edge means removing its connection to both endpoints. You can't
-// have an edge with just one connection. You can't reattach an edge once you have
-// detached it.
+// have an edge with just one connection, and you can't reattach an edge once you
+// have detached it.
 
 methods.detach = function () {
   this.a_.detach_derivative(this);
@@ -173,6 +187,10 @@ methods.choose = function (x, force) {
                        + 'endpoint');
   return this;
 };
+
+// You need to call this if you have a synchronous endpoint. Synchronous endpoints
+// don't push changes, so calling `pull` on the edge is the only propagation
+// trigger.
 
 methods.pull = function () {
   if (this.va_ < this.a_.pull().version()) this.ga_(this.from_a_, this.id());

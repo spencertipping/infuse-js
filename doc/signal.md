@@ -5,7 +5,7 @@ See also the [Infuse signal source](signal-src.md).
 More encapsulated callbacks! For example:
 
 ```js
-var s      = infuse.signal();
+var s      = $i.signal();
 var called = 0;
 var errors = 0;
 ```
@@ -170,10 +170,10 @@ a future by calling `once`. I'm doing it the wrong way below to illustrate what
 happens:
 
 ```js
-var sig1 = infuse.signal();
+var sig1 = $i.signal();
 var sig2 = null;
 var both = sig1.flatmap(function (v) {
-  sig2 = infuse.signal();
+  sig2 = $i.signal();
   return sig2.map('_ + v', {v: v});
 });
 ```

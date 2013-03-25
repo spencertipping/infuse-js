@@ -28,8 +28,13 @@ We assume the presence of `base_`, `version_`, and `generator_`. Of these,
 `generator_` is kept private because accessing it changes its state.
 
 ```js
-methods.base    = function () {return this.base_};
-methods.version = function () {return this.version_};
+methods.base          = function () {return this.base_};
+methods.version       = function () {return this.version_};
+methods.is_derivative = function () {return !!this.base_};
+```
+
+```js
+methods.bases = function () {return this.base_ ? [this.base_] : []};
 ```
 
 # Pull propagation

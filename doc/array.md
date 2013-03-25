@@ -2,19 +2,21 @@
 
 See also the [Infuse array source](array-src.md).
 
-When you say `infuse([1, 2, 3])`, Infuse selects the `infuse.array` alternative
-and invokes that instead, as if you had written `infuse.array([1, 2, 3])`:
+When you say `$i([1, 2, 3])`, a shorthand for `infuse([1, 2, 3])`, Infuse
+selects the `infuse.array` alternative and invokes that instead, as if you had
+written `infuse.array([1, 2, 3])`:
 
 ```js
-infuse([1, 2, 3]).size()        -> 3
+$i([1, 2, 3]).size()            -> 3
 infuse.array([1, 2, 3]).size()  -> 3
+$i === infuse                   -> true
 ```
 
 Like all Infuse objects, arrays support `size`, `get`, and a number of other
 accessor methods:
 
 ```js
-var xs = infuse([1, 2, 3]);
+var xs = $i([1, 2, 3]);
 xs.get(0)                       -> 1
 xs.get(-1)                      -> 3
 xs.tos()                        -> 'I[1, 2, 3]'
@@ -119,7 +121,7 @@ Objects of any type can be combined. When they are, the result has the type of
 the receiver. For example:
 
 ```js
-var sig = infuse.signal();
+var sig = $i.signal();
 var all = xs.plus(sig);
 ```
 
@@ -130,7 +132,7 @@ all.tos()       -> '#[1, 2, 3, 5, 6, foo, 4, hi]'
 ```
 
 ```js
-var o = infuse({});
+var o = $i({});
 all = all.plus(o);
 ```
 

@@ -50,15 +50,15 @@ endif
 gen/%.js: src/%.js.sdoc
 	./sdoc cat code.js::$< > $@
 ifneq ($(UGLIFY), no)
-	uglifyjs $@ > /dev/null || rm $@
+	uglifyjs $@ > /dev/null || mv $@ $@.broken
 endif
 
 gen/%-test.js: test/%.js.sdoc
 	./sdoc cat code.js::$< \
-	  | sed -r 's/^(.*)->\s*(.*)$$/infuse.assert_equal((\1), (\2));/g' \
+	  | perl -ple 's@^((?:(?!->).)*)\s->\s+((?:(?!//).)+)(//.*)?$$@infuse.assert_equal(($$1), ($$2));$$3@g' \
 	  > $@
 ifneq ($(UGLIFY), no)
-	uglifyjs $@ > /dev/null || rm $@
+	uglifyjs $@ > /dev/null || mv $@ $@.broken
 endif
 
 doc/%.md: test/%.js.sdoc

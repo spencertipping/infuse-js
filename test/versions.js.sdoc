@@ -5,7 +5,7 @@ information over time. This monotonic information gain is represented by the
 object's version, which is a number that increases each time the object
 changes:
 
-var xs = infuse([]);
+var xs = $i([]);
 
 xs.version()                            -> 1
 xs.push(1)                              -> xs
@@ -37,7 +37,7 @@ ys.join(',')                            -> '1,2,3'
 This is how almost all of the transformation methods work. For example, here's
 how `map` is implemented:
 
-var f      = infuse.fn('_ * 3');
+var f      = $i.fn('_ * 3');
 var g2     = xs.generator();
 var mapped = xs.derivative(function (emit) {
   g2(function (v, k) {
