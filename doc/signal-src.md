@@ -133,7 +133,7 @@ methods.get = function (k) {
 ```
 
 ```js
-  return this.default_get.apply(this, arguments);
+  return this.get_default.apply(this, arguments);
 };
 ```
 

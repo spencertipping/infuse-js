@@ -2144,7 +2144,7 @@ methods.get = function (k) {
     if (k === this.key_) return this.value_;
     else                 return null;
 
-  return this.default_get.apply(this, arguments);
+  return this.get_default.apply(this, arguments);
 };
 
 // Callback interface.

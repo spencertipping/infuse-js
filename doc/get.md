@@ -73,5 +73,16 @@ If you forget to do this, Infuse will think you want the value of a key called
 
 ```js
 $i({foo: 'bar'}).get('_.size()')                -> undefined
+```
+
+The same principle works for other types of objects. One useful case is using
+an array with a signal, for instance:
+
+```js
+var sig = $i.signal();
+sig.push(10, 'value');
+sig.get(['value', 'error']).tos()               -> '#[10, ]'
+sig.push('uh oh', 'error');
+sig.get(['value', 'error']).tos()               -> '#[, uh oh]'
 
 ```
