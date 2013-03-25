@@ -15,6 +15,7 @@ haven't yet checked out the *totally epic* builtin types:
 - [functions](doc/fn.md) (warning: unfathomably awesome)
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
+- [the `get` method](doc/get.md)
 - [edges](doc/edge.md)
 - [sorting](doc/sorting.md)
 - [awaiting](doc/await.md)
