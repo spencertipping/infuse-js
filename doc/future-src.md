@@ -179,6 +179,7 @@ methods.on = function (keygate, callback, id) {
 
 ```js
   // on(keygate, callback) -> this
+  callback = infuse.fn(callback);
   this.generator()(function (v, k) {if (keygate(k)) callback(v, k)},
                    id || infuse.gen_id());
   return this;
