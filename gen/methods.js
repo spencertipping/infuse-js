@@ -267,7 +267,7 @@ methods.get_default = function (x) {
 
 methods.sort = function (fn) {
   var f    = fn && infuse.fn.apply(this, arguments),
-      h    = infuse.heapmap(f, this.generator(), this),
+      h    = infuse.heapmap(f, true, this.generator(), this),
       g    = h.generator(),
       self = this;
   return this.derivative(function (emit, id) {
@@ -282,7 +282,7 @@ methods.sort = function (fn) {
 methods.sortby = function (fn) {
   var f    = infuse.fn.apply(this, arguments),
       sg   = this.generator(),
-      h    = infuse.heapmap(null, function (emit, id) {
+      h    = infuse.heapmap(null, true, function (emit, id) {
                sg(function (v, k) {return emit(f(v, k), k)}, id);
              }, this),
       g    = h.generator(),

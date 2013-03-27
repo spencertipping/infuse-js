@@ -32,7 +32,7 @@ methods.initialize = function (xs_or_f, base) {
                       + 'buffer without specifying a base'),
     this.generator_ = xs_or_f,
     this.version_   = -1,
-    this.journal_   = infuse.heapmap(),
+    this.journal_   = infuse.heapmap(null, false),
     this.pull();
   else
     this.xs_        = xs_or_f,
@@ -96,7 +96,7 @@ First attempt: go through linearly, tracking the ratio of hits to misses. If we
 see an undefined entry, then do the more expensive hasOwnProperty check.
 
 ```js
-    j = this.journal_ = infuse.heapmap();
+    j = this.journal_ = infuse.heapmap(null, false);
     var too_many_misses = false;
     for (var i = 0, l = xs.length, hits = 0, misses = 0; i < l; ++i)
       if (xs[i] === void 0 &&
@@ -113,7 +113,7 @@ guaranteed order with `for...in`, even for arrays.
 
 ```js
     if (too_many_misses) {
-      j = this.journal_ = infuse.heapmap();
+      j = this.journal_ = infuse.heapmap(null, false);
       for (var k in xs)
         if (xs.hasOwnProperty(k))
           j.push(v, +k);

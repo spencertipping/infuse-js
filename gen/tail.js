@@ -42,9 +42,9 @@ methods.push_ = function (v, k) {
 // Derivatives.
 // Nothing particularly interesting here. Derivatives inherit the parent's size.
 
-methods.derivative = function (generator) {
-  var f = infuse.fn.apply(this, arguments);
-  return infuse.tail(this.size_, f, this);
+methods.derivative = function (generator, version_base) {
+  var f = infuse.fn(generator);
+  return infuse.tail(this.size_, f, version_base || this);
 };
 
 // Traversal.

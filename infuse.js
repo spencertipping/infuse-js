@@ -668,12 +668,12 @@ infuse.mixins.pull(methods);
 // guess, but then the map will break). If you want the map functionality, then
 // the data you're storing must be a string.
 
-methods.initialize = function (above, generator, base) {
-  this.above_     = above ? infuse.fn.apply(this, arguments)
+methods.initialize = function (above, use_strings, generator, base) {
+  this.above_     = above ? infuse.fn(above)
                           : function (a, b) {return a < b};
   this.xs_        = [null];             // stores heap indexes (values)
   this.keys_      = [null];             // stores entry keys
-  this.map_       = {};                 // maps keys to array indexes
+  this.map_       = use_strings ? {} : [];
   this.version_   = -1;
   this.base_      = base;
   this.generator_ = generator;
@@ -684,7 +684,7 @@ methods.initialize = function (above, generator, base) {
 };
 
 methods.tos = function () {
-  return (this.base_ ? '#<' : '<')
+  return (this.base_ ? '#h<' : 'h<')
        + this.map('_2 + ": " + _1').join(', ')
        + '>';
 };
@@ -700,8 +700,9 @@ methods.size = function () {return this.pull().xs_.length - 1};
 // This logic is explained further in the `generator` method.
 
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
-  return infuse.heapmap(this.above_, f, version_base || this);
+  var f = infuse.fn(generator);
+  return infuse.heapmap(this.above_, !(this.map_ instanceof Array),
+                        f, version_base || this);
 };
 
 // Traversal.
@@ -1552,9 +1553,9 @@ methods.push_ = function (v, k) {
 // Derivatives.
 // Nothing particularly interesting here. Derivatives inherit the parent's size.
 
-methods.derivative = function (generator) {
-  var f = infuse.fn.apply(this, arguments);
-  return infuse.tail(this.size_, f, this);
+methods.derivative = function (generator, version_base) {
+  var f = infuse.fn(generator);
+  return infuse.tail(this.size_, f, version_base || this);
 };
 
 // Traversal.
@@ -1636,7 +1637,7 @@ methods.initialize = function (xs_or_f, base) {
                       + 'buffer without specifying a base'),
     this.generator_ = xs_or_f,
     this.version_   = -1,
-    this.journal_   = infuse.heapmap(),
+    this.journal_   = infuse.heapmap(null, false),
     this.pull();
   else
     this.xs_        = xs_or_f,
@@ -1687,7 +1688,7 @@ methods.journal = function () {
 // First attempt: go through linearly, tracking the ratio of hits to misses. If we
 // see an undefined entry, then do the more expensive hasOwnProperty check.
 
-    j = this.journal_ = infuse.heapmap();
+    j = this.journal_ = infuse.heapmap(null, false);
     var too_many_misses = false;
     for (var i = 0, l = xs.length, hits = 0, misses = 0; i < l; ++i)
       if (xs[i] === void 0 &&
@@ -1702,7 +1703,7 @@ methods.journal = function () {
 // guaranteed order with `for...in`, even for arrays.
 
     if (too_many_misses) {
-      j = this.journal_ = infuse.heapmap();
+      j = this.journal_ = infuse.heapmap(null, false);
       for (var k in xs)
         if (xs.hasOwnProperty(k))
           j.push(v, +k);
@@ -1808,7 +1809,7 @@ methods.push_ = function (v, k) {
 // the object has been updated, O(1) otherwise.
 
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
+  var f = infuse.fn(generator);
   return infuse.object(f, version_base || this);
 };
 
@@ -1965,7 +1966,7 @@ methods.push_ = function (v, k) {
 // the object has been updated, O(1) otherwise.
 
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
+  var f = infuse.fn(generator);
   return infuse.multiobject(f, version_base || this);
 };
 
@@ -2823,7 +2824,7 @@ methods.get_default = function (x) {
 
 methods.sort = function (fn) {
   var f    = fn && infuse.fn.apply(this, arguments),
-      h    = infuse.heapmap(f, this.generator(), this),
+      h    = infuse.heapmap(f, true, this.generator(), this),
       g    = h.generator(),
       self = this;
   return this.derivative(function (emit, id) {
@@ -2838,7 +2839,7 @@ methods.sort = function (fn) {
 methods.sortby = function (fn) {
   var f    = infuse.fn.apply(this, arguments),
       sg   = this.generator(),
-      h    = infuse.heapmap(null, function (emit, id) {
+      h    = infuse.heapmap(null, true, function (emit, id) {
                sg(function (v, k) {return emit(f(v, k), k)}, id);
              }, this),
       g    = h.generator(),

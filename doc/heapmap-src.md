@@ -44,12 +44,12 @@ guess, but then the map will break). If you want the map functionality, then
 the data you're storing must be a string.
 
 ```js
-methods.initialize = function (above, generator, base) {
-  this.above_     = above ? infuse.fn.apply(this, arguments)
+methods.initialize = function (above, use_strings, generator, base) {
+  this.above_     = above ? infuse.fn(above)
                           : function (a, b) {return a < b};
   this.xs_        = [null];             // stores heap indexes (values)
   this.keys_      = [null];             // stores entry keys
-  this.map_       = {};                 // maps keys to array indexes
+  this.map_       = use_strings ? {} : [];
   this.version_   = -1;
   this.base_      = base;
   this.generator_ = generator;
@@ -64,7 +64,7 @@ methods.initialize = function (above, generator, base) {
 
 ```js
 methods.tos = function () {
-  return (this.base_ ? '#<' : '<')
+  return (this.base_ ? '#h<' : 'h<')
        + this.map('_2 + ": " + _1').join(', ')
        + '>';
 };
@@ -85,8 +85,9 @@ This logic is explained further in the `generator` method.
 
 ```js
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
-  return infuse.heapmap(this.above_, f, version_base || this);
+  var f = infuse.fn(generator);
+  return infuse.heapmap(this.above_, !(this.map_ instanceof Array),
+                        f, version_base || this);
 };
 ```
 

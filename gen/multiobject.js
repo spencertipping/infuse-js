@@ -85,7 +85,7 @@ methods.push_ = function (v, k) {
 // the object has been updated, O(1) otherwise.
 
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
+  var f = infuse.fn(generator);
   return infuse.multiobject(f, version_base || this);
 };
 

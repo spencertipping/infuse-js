@@ -97,7 +97,7 @@ the object has been updated, O(1) otherwise.
 
 ```js
 methods.derivative = function (generator, version_base) {
-  var f = infuse.fn.apply(this, arguments);
+  var f = infuse.fn(generator);
   return infuse.object(f, version_base || this);
 };
 ```
