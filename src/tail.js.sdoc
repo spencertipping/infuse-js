@@ -10,6 +10,7 @@ infuse.extend(function (infuse) {
 infuse.type('tail', function (tail, methods) {
 
 infuse.mixins.pull(methods);
+infuse.mixins.linear(methods);
 
 Tail state.
 A tail is backed by a Javascript array. We also store the current "zero index",
@@ -65,7 +66,7 @@ methods.generator = function () {
 
 Retrieval.
 We behave exactly like an array here, except that when interpolating we wrap
-around the end.
+around the end. Note that `first` and `last` are Θ(n) in the size of the tail.
 
 methods.get = function (n, fn) {
   var xs = this.pull().xs_,

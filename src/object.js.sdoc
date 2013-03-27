@@ -135,7 +135,6 @@ methods.get = function (k) {
   return this.get_default.apply(this, arguments);
 };
 
-
 });
 
 Object promotion.

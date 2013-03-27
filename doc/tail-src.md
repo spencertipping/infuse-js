@@ -14,6 +14,7 @@ infuse.type('tail', function (tail, methods) {
 
 ```js
 infuse.mixins.pull(methods);
+infuse.mixins.linear(methods);
 ```
 
 # Tail state
@@ -86,7 +87,7 @@ methods.generator = function () {
 # Retrieval
 
 We behave exactly like an array here, except that when interpolating we wrap
-around the end.
+around the end. Note that `first` and `last` are Θ(n) in the size of the tail.
 
 ```js
 methods.get = function (n, fn) {

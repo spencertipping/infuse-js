@@ -12,6 +12,7 @@ haven't yet checked out the *totally epic* builtin types:
 - [arrays](doc/array.md)
 - [objects](doc/object.md)
 - [multiobjects](doc/multiobject.md)
+- [buffers](doc/buffer.md)
 - [functions](doc/fn.md) (warning: unfathomably awesome)
 - [futures](doc/future.md)
 - [signals](doc/signal.md)
@@ -35,6 +36,7 @@ And the low-level stuff:
 Annotated source (you should read this if you want to extend Infuse):
 
 - [array](doc/array-src.md)
+- [buffer](doc/buffer-src.md)
 - [cache](doc/cache-src.md)
 - [cell](doc/cell-src.md)
 - [edge](doc/edge-src.md)
@@ -45,6 +47,7 @@ Annotated source (you should read this if you want to extend Infuse):
 - [infuse](doc/infuse-src.md)
 - [keygate](doc/keygate-src.md)
 - [methods](doc/methods-src.md)
+- [mixin-linear](doc/mixin-linear-src.md)
 - [mixin-pull](doc/mixin-pull-src.md)
 - [mixin-push](doc/mixin-push-src.md)
 - [multiobject](doc/multiobject-src.md)

@@ -263,7 +263,8 @@ methods.initial_ceiling_ = function (v, depth) {
 
 methods.get = function (k) {
   var map = this.map_;
-  if (typeof k === typeof '' || k instanceof String)
+  if (typeof k === typeof '' || k instanceof String ||
+      typeof k === typeof 0  || k instanceof Number)
     return this.xs_[map[k]];
   return this.get_default.apply(this, arguments);
 };

@@ -35,8 +35,17 @@ Strings.
 A string is split into words, any of which is allowed to pass through.
 
 infuse.keygate.words = function (words) {
+  if (words.length <= 10)       // beyond a point a hash is more efficient
+    return function (k) {
+      return k == null || words.indexOf(k) > -1;
+    };
+
+  var word_hash = {};
+  for (var i = 0, l = words.length; i < l; ++i)
+    word_hash[words[i]] = word_hash;
+
   return function (k) {
-    return k == null || words.indexOf(k) > -1;
+    return k == null || word_hash[k] === word_hash;
   };
 };
 
