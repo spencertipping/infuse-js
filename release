@@ -1,0 +1,21 @@
+#!/bin/bash
+# Usage: ./release version-number
+
+if [[ $# == 0 ]]; then
+  echo "usage: $0 version-number"
+  echo "e.g. $0 0.1-r1"
+  exit 1
+fi
+
+rm doc/* gen/* infuse*.js
+make || exit $?
+
+mkdir -p stable
+
+git tag version-$1
+cp infuse.js      stable/infuse-$1.js
+cp infuse.min.js  stable/infuse-$1.min.js
+cp infuse-node.js stable/infuse-$1-node.js
+
+git add stable/infuse-$1*.js
+git commit -m "Automatic commit for version $1 release"
