@@ -43,7 +43,65 @@ methods.tos = function () {
 methods.size = function () {return this.size_};
 
 Node state.
+Each node contains a key, value, level, left child, and right child. Nodes are
+not parent-linked.
 
+methods.aatree_node_ = function (v, k, level, left, right) {
+  this.v     = v;
+  this.k     = k;
+  this.level = level;
+  this.left  = left;
+  this.right = right;
+};
+
+Rebalancing.
+Skew operation, which does this:
+
+|    L <- [T]              [L] -> T
+    / \      \     ->     /      / \
+   A   B      R          A      B   R
+
+The brackets indicate reference; for the skew operation, the parent's child
+pointer may change from T to L.
+
+methods.aatree_node_.prototype.skew = function () {
+  var l = this.left;
+  if (l && l.level === this.level) {
+    this.left = l.right;
+    l.right   = this;
+    return l;
+  }
+  return this;
+};
+
+Split operation:
+
+|                           [R]
+     [T] -> R -> X         /   \
+    /      /         ->   T     X
+   A      B              / \
+                        A   B
+
+Just like in `skew`, we return the parent's new child.
+
+methods.aatree_node_.prototype.split = function () {
+  var r  = this.right;
+  var rr = r && r.right;
+  if (rr && this.level === rr.level) {
+    this.right = r.left;
+    r.left     = this;
+    ++r.level;
+    return r;
+  }
+  return this;
+};
+
+Insertion.
+Destructively inserts a node into the tree.
+
+methods.aatree_node_.prototype.insert = function (v, k, container) {
+  // TODO
+};
 
 Derivatives.
 Generators traverse the tree in value order, which involves maintaining a
@@ -58,3 +116,6 @@ methods.derivative = function (generator, version_base) {
 methods.generator = function () {
   // TODO
 };
+
+});
+});

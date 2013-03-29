@@ -1,31 +1,24 @@
-Infuse AA-tree | Spencer Tipping
-Licensed under the terms of the MIT source code license
+// Infuse AA-tree | Spencer Tipping
+// Licensed under the terms of the MIT source code license
 
-# Introduction
+// Introduction.
+// A straightforward AA-tree implementation used as a key modification journal by
+// objects and buffers. Like heapmaps, AA-trees have generators that traverse the
+// key/value pairs in value-sorted order.
 
-A straightforward AA-tree implementation used as a key modification journal by
-objects and buffers. Like heapmaps, AA-trees have generators that traverse the
-key/value pairs in value-sorted order.
-
-```js
 infuse.extend(function (infuse) {
 infuse.type('aatree', function (aatree, methods) {
-```
 
-```js
 infuse.mixins.pull(methods);
-```
 
-# AA-tree state
+// AA-tree state.
+// We store the ordering function, which takes two values and returns true if the
+// first should be stored to the left of the second. When searching for elements,
+// equality is determined with `===`.
 
-We store the ordering function, which takes two values and returns true if the
-first should be stored to the left of the second. When searching for elements,
-equality is determined with `===`.
+// Storing AA-trees in an array is _completely and utterly impractical_, so we
+// define a class representing a tree node.
 
-Storing AA-trees in an array is _completely and utterly impractical_, so we
-define a class representing a tree node.
-
-```js
 methods.initialize = function (lt, use_strings, generator, base) {
   this.lt_        = lt ? infuse.fn(lt)
                        : function (a, b) {return a < b};
@@ -35,33 +28,24 @@ methods.initialize = function (lt, use_strings, generator, base) {
   this.version_   = -1;
   this.base_      = base;
   this.generator_ = generator;
-```
 
-```js
   infuse.assert(!!base === !!generator,
     'infuse: base and generator must be specified together ('
   + 'error constructing aatree)');
 };
-```
 
-```js
 methods.tos = function () {
   return (this.base_ ? '#t<' : '#<')
        + this.map('_2 + ": " + _1').join(', ')
        + '>';
 };
-```
 
-```js
 methods.size = function () {return this.size_};
-```
 
-# Node state
+// Node state.
+// Each node contains a key, value, level, left child, and right child. Nodes are
+// not parent-linked.
 
-Each node contains a key, value, level, left child, and right child. Nodes are
-not parent-linked.
-
-```js
 methods.aatree_node_ = function (v, k, level, left, right) {
   this.v     = v;
   this.k     = k;
@@ -69,20 +53,17 @@ methods.aatree_node_ = function (v, k, level, left, right) {
   this.left  = left;
   this.right = right;
 };
-```
 
-# Rebalancing
+// Rebalancing.
+// Skew operation, which does this:
 
-Skew operation, which does this:
+// |    L <- [T]              [L] -> T
+//     / \      \     ->     /      / \
+//    A   B      R          A      B   R
 
-       L <- [T]              [L] -> T
-      / \      \     ->     /      / \
-     A   B      R          A      B   R
+// The brackets indicate reference; for the skew operation, the parent's child
+// pointer may change from T to L.
 
-The brackets indicate reference; for the skew operation, the parent's child
-pointer may change from T to L.
-
-```js
 methods.aatree_node_.prototype.skew = function () {
   var l = this.left;
   if (l && l.level === this.level) {
@@ -92,19 +73,17 @@ methods.aatree_node_.prototype.skew = function () {
   }
   return this;
 };
-```
 
-Split operation:
+// Split operation:
 
-                              [R]
-       [T] -> R -> X         /   \
-      /      /         ->   T     X
-     A      B              / \
-                          A   B
+// |                           [R]
+//      [T] -> R -> X         /   \
+//     /      /         ->   T     X
+//    A      B              / \
+//                         A   B
 
-Just like in `skew`, we return the parent's new child.
+// Just like in `skew`, we return the parent's new child.
 
-```js
 methods.aatree_node_.prototype.split = function () {
   var r  = this.right;
   var rr = r && r.right;
@@ -116,39 +95,29 @@ methods.aatree_node_.prototype.split = function () {
   }
   return this;
 };
-```
 
-# Insertion
+// Insertion.
+// Destructively inserts a node into the tree.
 
-Destructively inserts a node into the tree.
-
-```js
 methods.aatree_node_.prototype.insert = function (v, k, container) {
   // TODO
 };
-```
 
-# Derivatives
+// Derivatives.
+// Generators traverse the tree in value order, which involves maintaining a
+// reference to the last value seen.
 
-Generators traverse the tree in value order, which involves maintaining a
-reference to the last value seen.
-
-```js
 methods.derivative = function (generator, version_base) {
   var f = infuse.fn(generator);
   return infuse.aatree(this.lt_, !(this.map_ instanceof Array),
                        f, version_base || this);
 };
-```
 
-```js
 methods.generator = function () {
   // TODO
 };
-```
 
-```js
 });
 });
 
-```
+// Generated by SDoc

@@ -4,6 +4,7 @@ INFUSE_JS_DEPS = gen/infuse.js \
 		 gen/funnel.js gen/cell.js \
 		 gen/util.js \
 		 gen/heapmap.js gen/cache.js \
+		 gen/aatree.js \
 		 gen/fn.js gen/keygate.js \
 		 gen/patch.js \
 		 gen/array.js gen/tail.js gen/buffer.js \
