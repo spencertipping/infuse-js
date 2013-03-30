@@ -65,7 +65,10 @@ infuse.assert_equal((xs.push(6)                     ), (xs));
 infuse.assert_equal((ys2.tos()                      ), ('#[4, 6, 8, 12, 14]'));
 
 // This includes things like filters and flatmaps, but with the caveat that
-// already-realized elements won't be recomputed:
+// already-realized elements won't be recomputed. (That is, if the function you're
+// flat-mapping over returns an Infuse array, the flat-map result won't be a
+// derivative of that array; so updating the result after the fact won't impact
+// the flat-map result.)
 
 var zs = xs.flatmap('[_ + 1, _ + 2]');
 infuse.assert_equal((zs.size()                      ), (10));
