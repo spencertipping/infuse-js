@@ -27,9 +27,11 @@ g(function (x, i) {
 ```
 
 ```js
-g(function (x, i) {
-  i > 0                         -> true
+var expected = 0;
+g(function (x, i) {             // replays rejected element from last time
+  i === expected                -> true
   x === arr[i]                  -> true
+  ++expected;
 });
 ```
 

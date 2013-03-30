@@ -86,10 +86,8 @@ time.
 methods.generator = function () {
   var i = 0, self = this;
   return function (emit) {
-    for (var xs = self.pull().xs_, l = xs.length; i < l;)
-      // It's important to do the increment here so that it happens even if we
-      // break out of the loop.
-      if (emit(xs[i], i++) === false) return false;
+    for (var xs = self.pull().xs_, l = xs.length; i < l; ++i)
+      if (emit(xs[i], i) === false) return false;
   };
 };
 

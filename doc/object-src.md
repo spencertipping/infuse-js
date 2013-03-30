@@ -38,7 +38,7 @@ methods.initialize = function (o_or_f, base) {
                       + 'object without specifying a base'),
     this.generator_ = o_or_f,
     this.version_   = -1,
-    this.journal_   = infuse.heapmap(),
+    this.journal_   = infuse.aatree(),
     this.pull();
   else
     this.o_         = o_or_f,
@@ -112,7 +112,7 @@ methods.journal = function () {
 
 ```js
     // Update all keys to the current version.
-    j = this.journal_ = infuse.heapmap();
+    j = this.journal_ = infuse.aatree();
     for (var k in o)
       if (Object.prototype.hasOwnProperty.call(o, k))
         j.push(v, k);
@@ -127,9 +127,6 @@ This is tricky. We need to go through the object's keys in the right order, but
 we can't use the `keys` function to do it because `keys` is defined in terms of
 `generator`. Instead, we maintain a maxheap of key -> version and use that to
 pull changes.
-
-Heap generators aren't the same as generators for other objects; see
-`infuse.heapmap` for details.
 
 ```js
 methods.generator = function () {

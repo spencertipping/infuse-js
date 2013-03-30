@@ -4,8 +4,8 @@ Licensed under the terms of the MIT source code license
 # Introduction
 
 A straightforward AA-tree implementation used as a key modification journal by
-objects and buffers. Like heapmaps, AA-trees have generators that traverse the
-key/value pairs in value-sorted order.
+objects and buffers. AA-trees have generators that traverse the key/value pairs
+in key-sorted order.
 
 ```js
 infuse.extend(function (infuse) {
@@ -126,7 +126,7 @@ http://user.it.uu.se/~arnea/ps/simp.ps.
 
 ```js
 methods.aatree_node_.prototype.insert = function (v, k, tree) {
-  if (tree.lt_(k, this.k))
+  if (tree.lt_(v, this.v))
     this.left  = this.left  ? this.left.insert(v, k, tree)
                             : new methods.aatree_node_(v, k, 1, null, null);
   else
@@ -146,15 +146,15 @@ implementation at
 http://thomaswilburn.net/typedefs/index.php/tree/aa/aa_trees.html.
 
 ```js
-methods.aatree_node_.prototype.remove = function (k, tree) {
+methods.aatree_node_.prototype.remove = function (v, tree) {
   var l, r;
-  var lt = tree.lt_(this.k, k);
-  if      ((r = this.r) && lt)                  this.r = r.remove(k, tree);
-  else if ((l = this.l) && this.k !== k && !lt) this.l = l.remove(k, tree);
+  var lt = tree.lt_(this.v, v);
+  if      ((r = this.r) && lt)                  this.r = r.remove(v, tree);
+  else if ((l = this.l) && this.v !== v && !lt) this.l = l.remove(v, tree);
   else if (!l && !r) return null;
-  else if (!l) l = this.next(), this.r = r.remove(l.k, tree),
+  else if (!l) l = this.next(), this.r = r.remove(l.v, tree),
                this.v = l.v, this.k = l.k;
-  else         r = this.prev(), this.l = l.remove(r.k, tree),
+  else         r = this.prev(), this.l = l.remove(r.v, tree),
                this.v = r.v, this.k = r.k;
 ```
 
@@ -197,16 +197,16 @@ traversal beginning at a given point. `search` returns the node associated with
 a key.
 
 ```js
-methods.aatree_node_.prototype.search = function (k, tree) {
-  return k === this.k        ? this
-       : tree.lt_(k, this.k) ? this.l && this.l.search(k, tree)
-       :                       this.r && this.r.search(k, tree);
+methods.aatree_node_.prototype.search = function (v, tree) {
+  return v === this.v        ? this
+       : tree.lt_(v, this.v) ? this.l && this.l.search(v, tree)
+       :                       this.r && this.r.search(v, tree);
 };
 ```
 
 ```js
 methods.aatree_node_.prototype.traverse = function (start, tree, target) {
-  if (start === void 0 || tree.lt_(start, this.k)) {
+  if (start === void 0 || tree.lt_(start, this.v)) {
     if (this.l) this.l.traverse(start, tree, target);
     if (target.push(this.v, this.k) === false) return false;
   }
@@ -232,9 +232,9 @@ NOTE: The object being removed is assumed to be in the tree! If it isn't, then
 the size counter will become incorrect.
 
 ```js
-methods.remove = function (k) {
+methods.remove = function (v) {
   if (this.root_) --this.size_;
-  this.root_ = this.root_ && this.root_.remove(k, this);
+  this.root_ = this.root_ && this.root_.remove(v, this);
   return this;
 };
 ```
@@ -256,11 +256,11 @@ methods.derivative = function (generator, version_base) {
 methods.generator = function () {
   var last = void 0,
       self = this;
-  return function (target) {
+  return function (emit) {
     var r = self.root_;
     if (!r) return;
     r.traverse(last, self, {push: function (v, k) {
-      if (target.push(v, k) === false) return false;
+      if (emit(v, k) === false) return false;
       last = v;
     }});
   };

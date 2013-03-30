@@ -21,9 +21,11 @@ infuse.assert_equal((  i                            ), (0));
   return false;                 // stops iteration for the moment
 });
 
-g(function (x, i) {
-infuse.assert_equal((  i > 0                        ), (true));
+var expected = 0;
+g(function (x, i) {             // replays rejected element from last time
+infuse.assert_equal((  i === expected               ), (true));
 infuse.assert_equal((  x === arr[i]                 ), (true));
+  ++expected;
 });
 
 // Now the generator is up-to-date; calling it further won't have any effect:
