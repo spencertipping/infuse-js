@@ -124,13 +124,20 @@ infuse.nonreducing_generator('kmapfilter_generator',
   });
 ```
 
+```js
+infuse.nonreducing_generator('keygate_generator',
+  function (target, v, k) {
+    if (this.f_(k)) return target.push_pair(v, k);
+  });
+```
+
 # Reducing generators
 
 These maintain state between `transform` calls, which makes order more
 important.
 
 ```js
-infuse.type('reducing_generator', function (gen, methods) {
+infuse.type('reduction_generator', function (gen, methods) {
   infuse.mixins.transforming_generator(methods);
 ```
 
@@ -145,6 +152,25 @@ infuse.type('reducing_generator', function (gen, methods) {
 ```js
   methods.transform = function (target, v, k) {
     return target.push_pair(this.v_ = this.f_(this.v_, v, k), k);
+  };
+});
+```
+
+Collapsing generators are an even more versatile form: they are allowed to
+remove values from the incoming stream (or join them in arbitrary ways). This
+is different from `reduction_generator`s, which simply combine previous values
+with new ones.
+
+```js
+infuse.type('collapsing_generator', function (gen, methods) {
+  infuse.mixins.transforming_generator(methods);
+```
+
+```js
+  methods.initialize = function (generator, state, f) {
+    this.generator_ = generator;
+    this.state_     = state;
+    this.transform  = f;
   };
 });
 ```
