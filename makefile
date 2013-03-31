@@ -1,5 +1,8 @@
 # Order matters for JS deps.
-INFUSE_JS_DEPS = gen/infuse.js
+INFUSE_JS_DEPS = gen/infuse.js \
+		 gen/util.js \
+		 gen/mixin-pull.js gen/pull-generator.js \
+		 gen/aatree.js
 
 INFUSE_TESTS = $(patsubst test/%.js.sdoc,gen/%-test.js,$(wildcard test/*))
 
