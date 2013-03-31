@@ -180,12 +180,12 @@ methods.remove_ = function (node, k) {
   if (minlevel < node.level) {
     node.level = minlevel;
     if (node.r && minlevel < node.r.level) node.r.level = minlevel;
+    if (node     = this.skew_(node))
+      if (node.r = this.skew_(node.r))
+        node.r.r = this.skew_(node.r.r);
+    if (node = this.split_(node))
+      node.r = this.split_(node.r);
   }
-  if (node = this.skew_(node))
-    if (node.r = this.skew_(node.r))
-      node.r.r = this.skew_(node.r.r);
-  if (node = this.split_(node))
-    node.r = this.split_(node.r);
   return node;
 };
 ```
@@ -229,6 +229,7 @@ root.
 
 ```js
 methods.push_pair = function (v, k) {
+  if (arguments.length === 1) k = this.version_;
   this.root_ = this.insert_(this.root_, v, k);
   this.first_ = this.last_ = null;
   return this;
@@ -308,9 +309,8 @@ Generators traverse the tree in key order, which involves maintaining a
 reference to the last one seen.
 
 ```js
-methods.derivative = function (generator) {
-  var f = infuse.fn(generator);
-  return infuse.aatree(this.lt_, f);
+methods.derivative = function (fn) {
+  return infuse.aatree(this.lt_, infuse.fnarg(arguments, 0));
 };
 ```
 
